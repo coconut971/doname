@@ -4,37 +4,238 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DoName results</title>
 <style>
-  :root{color-scheme:light dark;font:14px/1.45 system-ui,sans-serif;background:#101e29;color:#f5faf7}
-  *{box-sizing:border-box}body{margin:0;padding:16px;max-width:720px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
-  h1{font-size:18px;letter-spacing:.02em;margin:0}h1 span{color:#78dfb7}p{margin:6px 0;color:#bdd2d2}.controls{display:flex;gap:10px;align-items:center;font-size:12px;color:#bdd2d2}
-  .card{border:1px solid #36525c;border-radius:12px;background:#172a35;padding:13px;margin:9px 0}.card h2{margin:0 0 6px;font-size:16px}.pill{border-radius:999px;padding:2px 8px;font-size:11px;background:#31424b;color:#d9e8e5}
-  .pass{background:#164938;color:#a6f0c6}.unknown{background:#594a23;color:#fbe3a0}.fail{background:#5e3336;color:#fac4c6}
-  .row{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid #30444f}.domain{font-weight:650;overflow-wrap:anywhere}.meta{font-size:11px;color:#bdd2d2;grid-column:1/-1}
-  .price{text-align:right;white-space:nowrap}.reason{font-size:11px;color:#e5c79b}.empty{border:1px dashed #49636b;border-radius:10px;padding:14px;color:#bdd2d2}
-  @media(prefers-color-scheme:light){:root{background:#f6faf8;color:#14252a}.card{background:#fff;border-color:#cbdeda}.row{border-color:#e1ece8}.pill{background:#e6efeb;color:#27423b}.pass{background:#d4f2df;color:#164c30}.unknown{background:#fff0c3;color:#664c00}.fail{background:#ffe2e2;color:#7c252d}p,.controls,.meta,.empty{color:#526d69}.reason{color:#885b1b}}
+  :root{
+    color-scheme:light dark;
+    font:14px/1.45 var(--font-sans,system-ui,sans-serif);
+    --page:var(--color-background-primary,light-dark(#fff,#171717));
+    --surface:var(--color-background-secondary,light-dark(#fff,#202020));
+    --surface-soft:light-dark(#f7f8f7,#252725);
+    --text:var(--color-text-primary,light-dark(#202522,#f1f3f1));
+    --muted:var(--color-text-secondary,light-dark(#69716d,#a3aaa5));
+    --border:var(--color-border-primary,light-dark(#e1e5e2,#383d39));
+    --accent:light-dark(#176b58,#70c6a4);
+    --good:light-dark(#e7f4ed,#203b30);
+    --good-text:light-dark(#246044,#a8e2bd);
+    --caution:light-dark(#f8f1dc,#3d3522);
+    --caution-text:light-dark(#775a17,#efd58b);
+    --bad:light-dark(#f8e9e8,#412827);
+    --bad-text:light-dark(#8c3b36,#f0b9b4);
+    background:var(--page);color:var(--text)
+  }
+  :root[data-theme="light"]{color-scheme:light}
+  :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;padding:12px 14px 16px;max-width:960px;font-size:13px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+  .brand{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;letter-spacing:-.02em}
+  .brand-mark{width:20px;height:20px;display:grid;place-items:center;border-radius:7px;background:var(--good);color:var(--accent);font-size:12px}
+  .brand-name span{color:var(--accent)}
+  .filter{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;cursor:pointer;user-select:none}
+  .filter input{accent-color:var(--accent);margin:0}
+  #summary{margin:0 0 9px;color:var(--muted);font-size:12px}
+  #cards{display:grid;gap:9px}
+  .candidate{min-width:0;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px;box-shadow:0 1px 2px #00000008}
+  .candidate-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+  .candidate-title{min-width:0}
+  .candidate h2{margin:0;font-size:17px;line-height:1.3;font-weight:650;letter-spacing:-.025em;overflow-wrap:anywhere}
+  .candidate-subtitle{margin:3px 0 0;color:var(--muted);font-size:11px}
+  .badge{display:inline-flex;align-items:center;gap:5px;flex:none;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:650;line-height:1.35;background:var(--surface-soft);color:var(--muted)}
+  .badge.pass{background:var(--good);color:var(--good-text)}
+  .badge.unknown{background:var(--caution);color:var(--caution-text)}
+  .badge.fail{background:var(--bad);color:var(--bad-text)}
+  .domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:8px}
+  .domain-card{min-width:0;border:1px solid var(--border);border-radius:11px;background:var(--surface-soft);padding:11px 12px 9px}
+  .domain-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .tld{font-size:12px;font-weight:750;letter-spacing:.03em;color:var(--accent)}
+  .domain-name{margin:5px 0 9px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+  .registration-label{font-size:10px;color:var(--muted)}
+  .price-line{display:flex;align-items:baseline;gap:6px;min-width:0}
+  .price{font-size:21px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .period{color:var(--muted);font-size:11px;white-space:nowrap}
+  .price-missing{padding:2px 0 1px;color:var(--muted);font-size:14px;font-weight:550}
+  .renewal{margin-top:3px;color:var(--muted);font-size:10px}
+  .renewal strong{color:var(--text);font-weight:550}
+  .domain-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);color:var(--muted);font-size:10px}
+  .provider{color:var(--text);font-weight:550}
+  .checked{white-space:nowrap;font-variant-numeric:tabular-nums}
+  .evidence{margin-top:6px;color:var(--muted);font-size:10px}
+  .evidence summary{width:max-content;max-width:100%;cursor:pointer;list-style:none}
+  .evidence summary::-webkit-details-marker{display:none}
+  .evidence summary::before{content:"+";display:inline-block;width:14px;color:var(--accent);font-weight:700}
+  .evidence[open] summary::before{content:"−"}
+  .evidence ul{display:grid;gap:3px;margin:5px 0 0;padding:0 0 0 14px;list-style:none}
+  .reason{margin:9px 0 0;color:var(--caution-text);font-size:11px}
+  .empty{border:1px dashed var(--border);border-radius:11px;padding:14px;color:var(--muted);font-size:12px}
+  .disclaimer{margin:9px 0 0;color:var(--muted);font-size:10px}
+  :root[data-display-mode="fullscreen"] body{max-width:none;padding:clamp(18px,4vw,40px)}
+  @media(max-width:420px){body{padding:10px}.candidate{padding:11px}.candidate-header{gap:7px}.candidate h2{font-size:15px}.badge{padding:3px 7px}}
+  @media(prefers-reduced-motion:no-preference){.candidate,.domain-card{transition:border-color .16s ease,box-shadow .16s ease}.domain-card:hover{border-color:color-mix(in srgb,var(--accent) 36%,var(--border));box-shadow:0 2px 10px #0000000a}}
 </style>
 </head>
 <body>
-<header><h1>Do<span>Name</span></h1><label class="controls"><input id="only" type="checkbox"> Available only</label></header>
-<p id="summary">Waiting for checked names…</p><div id="cards" aria-live="polite"></div>
+<header>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">D</span><span class="brand-name">Do<span>Name</span></span></div>
+  <label class="filter"><input id="only" type="checkbox"><span id="filter-label">Available only</span></label>
+</header>
+<p id="summary" aria-live="polite">Waiting for checked names…</p>
+<div id="cards" aria-live="polite"></div>
 <script>
 (() => {
-  const state = {data:null};
+  const state = {data:null, context:{}};
   let active = true;
   let initialized = false;
   let lastSize = '';
   const summary = document.getElementById('summary');
   const cards = document.getElementById('cards');
   const only = document.getElementById('only');
-  const label = {available_at_provider:'Available at provider',unavailable_at_provider:'Unavailable here',registered:'Registered',not_found_in_registration_data:'Not found in RDAP',not_verified:'Not verified',conflict:'Conflicting evidence'};
-  const node = (tag, text, className) => { const el=document.createElement(tag); el.textContent=text; if(className) el.className=className; return el; };
-  const price = p => p ? `${p.amount} ${p.currency} / ${p.period_years} yr${p.period_years===1?'':'s'}` : 'Price unknown';
+  const filterLabel = document.getElementById('filter-label');
+  const node = (tag, text, className) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=text; if(className) el.className=className; return el; };
+  const locale = () => state.context.locale || document.documentElement.lang || 'en-US';
+  const french = () => locale().toLowerCase().startsWith('fr');
+  const copy = () => french() ? {
+    waiting:'En attente des noms vérifiés…',noResults:'Aucun nom ne correspond à ce filtre.',
+    availableOnly:'Disponibles uniquement',
+    matches:'Correspond aux critères',unverifiedBadge:'À vérifier',excludedBadge:'Hors critères',
+    extensionAvailable:'extension disponible chez le fournisseur',extensionsAvailable:'extensions disponibles chez le fournisseur',
+    available:'Disponible selon le fournisseur',unavailable:'Indisponible chez le fournisseur',
+    registered:'Enregistré',rdapMissing:'Absent des données RDAP',notVerified:'Non vérifié',conflict:'Preuves contradictoires',
+    registration:'Enregistrement',for:'pour',year:'an',years:'ans',priceUnknown:'Prix non fourni',
+    renewal:'Renouvellement',renewalUnknown:'Renouvellement non fourni',checked:'Vérifié',justNow:'à l’instant',
+    details:'Détails des vérifications',
+    rdap:'Enregistrement (RDAP)',provider:'Disponibilité fournisseur',dns:'Observation DNS',
+    availableNote:'Disponibilité indicative au moment du contrôle. La confirmation finale appartient au fournisseur.',
+    noSource:'Aucune source vérifiable'
+  } : {
+    waiting:'Waiting for checked names…',noResults:'No names match this filter.',
+    availableOnly:'Available only',eligible:'eligible',excluded:'excluded',unverified:'unverified',
+    matches:'Matches criteria',unverifiedBadge:'Needs checking',excludedBadge:'Outside criteria',
+    extensionAvailable:'extension available at provider',extensionsAvailable:'extensions available at provider',
+    available:'Available at provider',unavailable:'Unavailable at provider',
+    registered:'Registered',rdapMissing:'Not found in RDAP',notVerified:'Not verified',conflict:'Conflicting evidence',
+    registration:'Registration',for:'for',year:'year',years:'years',priceUnknown:'Price not provided',
+    renewal:'Renewal',renewalUnknown:'Renewal price not provided',checked:'Checked',justNow:'just now',
+    details:'Check details',
+    rdap:'Registration (RDAP)',provider:'Provider registrability',dns:'DNS observation',
+    availableNote:'Provider availability is indicative at the time checked. Final confirmation belongs to the provider.',
+    noSource:'No verifiable source'
+  };
+  const statusText = status => ({
+    available_at_provider:copy().available, unavailable_at_provider:copy().unavailable,
+    registered:copy().registered, not_found_in_registration_data:copy().rdapMissing,
+    not_verified:copy().notVerified, conflict:copy().conflict
+  }[status] || copy().notVerified);
+  function applyHostContext(context={}){
+    if(!context||typeof context!=='object') return;
+    state.context={...state.context,...context};
+    const root=document.documentElement;
+    if(state.context.theme==='light'||state.context.theme==='dark') root.dataset.theme=state.context.theme;
+    if(typeof state.context.locale==='string'&&state.context.locale){root.lang=state.context.locale;}
+    if(typeof state.context.platform==='string') root.dataset.platform=state.context.platform;
+    if(typeof state.context.displayMode==='string') root.dataset.displayMode=state.context.displayMode;
+    const variables=state.context.styles?.variables;
+    const allowed=['--color-background-primary','--color-background-secondary','--color-text-primary','--color-text-secondary','--color-border-primary','--font-sans'];
+    if(variables&&typeof variables==='object') for(const key of allowed){
+      const value=variables[key];
+      if(typeof value==='string'&&value.length<200) root.style?.setProperty?.(key,value);
+    }
+    filterLabel.textContent=copy().availableOnly;
+  }
+  function money(value){
+    const amount=Number(value?.amount), currency=value?.currency;
+    if(!Number.isFinite(amount)||typeof currency!=='string'||!/^[A-Za-z]{3}$/.test(currency))
+      return value?`${value.amount} ${value.currency}`:copy().priceUnknown;
+    try{return new Intl.NumberFormat(locale(),{style:'currency',currency:currency.toUpperCase(),currencyDisplay:'code'}).format(amount);}
+    catch{return `${value.amount} ${currency.toUpperCase()}`;}
+  }
+  function period(years){
+    const n=Number(years)||1;
+    try{return `${new Intl.NumberFormat(locale()).format(n)} ${n===1?copy().year:copy().years}`;}
+    catch{return `${n} ${n===1?copy().year:copy().years}`;}
+  }
+  function relativeTime(iso){
+    if(!iso) return copy().notVerified;
+    const seconds=Math.max(0,Math.floor((Date.now()-Date.parse(iso))/1000));
+    if(!Number.isFinite(seconds)) return copy().notVerified;
+    if(seconds<45) return copy().justNow;
+    const unit=seconds<3600?'minute':seconds<86400?'hour':'day';
+    const value=Math.floor(seconds/(unit==='minute'?60:unit==='hour'?3600:86400));
+    try{return new Intl.RelativeTimeFormat(locale(),{numeric:'auto'}).format(-value,unit);}
+    catch{return `${copy().checked} ${value} ${unit}${value===1?'':'s'} ago`;}
+  }
+  function formatDate(iso){
+    if(!iso) return copy().notVerified;
+    const date=new Date(iso);
+    if(Number.isNaN(date.getTime())) return iso;
+    try{return new Intl.DateTimeFormat(locale(),{dateStyle:'medium',timeStyle:'medium',timeZone:state.context.timeZone}).format(date);}
+    catch{return date.toISOString();}
+  }
+  function primaryEvidence(domain){
+    if(domain.status==='registered'||domain.status==='not_found_in_registration_data') return domain.registration||domain.registrability||domain.dns;
+    return domain.registrability||domain.registration||domain.dns;
+  }
+  function renderEvidence(domain, card){
+    const sources=[['registration',domain.registration],['registrability',domain.registrability],['dns',domain.dns]].filter(([,value])=>value);
+    if(!sources.length) return;
+    const details=node('details',undefined,'evidence');
+    details.append(node('summary',copy().details));
+    const list=node('ul');
+    sources.forEach(([key,evidence])=>{
+      const category=key==='registration'?copy().rdap:key==='registrability'?copy().provider:copy().dns;
+      const source=evidence.source?`${category} · ${evidence.source}`:category;
+      const line=`${source} · ${evidence.status||copy().notVerified} · ${formatDate(evidence.checked_at)}`;
+      list.append(node('li',line));
+    });
+    details.append(list);card.append(details);
+  }
+  function renderDomain(domain){
+    const card=node('article',undefined,'domain-card');
+    const match=domain.domain.match(/\.([^.]+)$/);
+    const tld=node('span',match?`.${match[1]}`:'Domain','tld');
+    const badgeClass=domain.status==='available_at_provider'?'pass':domain.status==='registered'||domain.status==='unavailable_at_provider'?'fail':'unknown';
+    const top=node('div',undefined,'domain-top');
+    top.append(tld,node('span',statusText(domain.status),`badge ${badgeClass}`));
+    card.append(top,node('div',domain.domain,'domain-name'));
+
+    card.append(node('div',copy().registration,'registration-label'));
+    const registration=node('div',undefined,'price-line');
+    if(domain.registration_price){
+      registration.append(node('strong',money(domain.registration_price),'price'));
+      registration.append(node('span',`${copy().for} ${period(domain.registration_price.period_years)}`,'period'));
+    }else registration.append(node('span',copy().priceUnknown,'price-missing'));
+    card.append(registration);
+
+    const renewal=domain.renewal_price
+      ? `${copy().renewal} · ${money(domain.renewal_price)} / ${period(domain.renewal_price.period_years)}`
+      : copy().renewalUnknown;
+    card.append(node('div',renewal,'renewal'));
+
+    const evidence=primaryEvidence(domain);
+    const provider=domain.registration_price?.provider||domain.renewal_price?.provider||domain.registrability?.source;
+    const footer=node('div',undefined,'domain-footer');
+    footer.append(node('span',provider||evidence?.source||copy().noSource,'provider'));
+    const checked=node('span',evidence?`${copy().checked} ${relativeTime(evidence.checked_at)}`:copy().notVerified,'checked');
+    if(evidence?.checked_at) checked.title=formatDate(evidence.checked_at);
+    footer.append(checked);
+    card.append(footer);
+    renderEvidence(domain,card);
+    return card;
+  }
+  function updateSummary(){
+    if(!state.data){summary.textContent=copy().waiting;return;}
+    const candidates=state.data.candidates||[];
+    const counts=state.data.excluded_summary||{};
+    const eligible=candidates.length;
+    const excluded=Number(counts.excluded)||0;
+    const unverified=Number(counts.unverified)||0;
+    summary.textContent=french()
+      ? `${eligible} ${eligible===1?'nom retenu':'noms retenus'} · ${excluded} ${excluded===1?'nom écarté':'noms écartés'} · ${unverified} ${unverified===1?'non vérifié':'non vérifiés'}`
+      : `${eligible} ${copy().eligible} · ${excluded} ${copy().excluded} · ${unverified} ${copy().unverified}`;
+  }
   function notifySize(){
     if(!active||!initialized) return;
     const bounds=document.body?.getBoundingClientRect?.();
     if(!bounds) return;
-    const width=Math.ceil(bounds.width),height=Math.ceil(bounds.height);
-    const key=`${width}x${height}`;
+    const width=Math.ceil(bounds.width),height=Math.ceil(bounds.height),key=`${width}x${height}`;
     if(width>0&&height>0&&key!==lastSize){
       lastSize=key;
       window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{width,height}},'*');
@@ -42,28 +243,29 @@
   }
   function render(){
     cards.replaceChildren();
+    updateSummary();
     if(!state.data) return;
-    summary.textContent=state.data.summary || 'No results';
-    const entries=[...(state.data.candidates||[]),...(state.data.excluded||[])].filter(x=>!only.checked||x.match==='pass');
-    if(!entries.length){cards.append(node('div','No names match this filter.','empty'));return;}
+    const entries=[...(state.data.candidates||[]),...(state.data.excluded||[])].filter(item=>!only.checked||item.match==='pass');
+    if(!entries.length){cards.append(node('div',copy().noResults,'empty'));notifySize();return;}
     entries.forEach(item=>{
-      const card=node('section','','card');
-      const heading=node('h2',item.name+' '); heading.append(node('span',item.match==='pass'?'Matches':item.match==='unknown'?'Unverified':'Excluded','pill '+item.match)); card.append(heading);
-      (item.domains||[]).filter(d=>!only.checked||d.status==='available_at_provider').forEach(d=>{
-        const row=node('div','','row');
-        row.append(node('div',d.domain+' · '+(label[d.status]||d.status),'domain'));
-        row.append(node('div',price(d.registration_price),'price'));
-        const rdapStatus=d.status==='registered'||d.status==='not_found_in_registration_data';
-        const evidence=rdapStatus?d.registration:(d.registrability||d.registration);
-        const secondary=rdapStatus?d.registrability:(d.status==='conflict'?d.registration:null);
-        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked'];
-        if(secondary) meta.push(`${secondary.source}: ${secondary.status}`);
-        meta.push(d.renewal_price?'Indicative renewal '+price(d.renewal_price):'Renewal unknown');
-        row.append(node('div',meta.join(' · '),'meta'));card.append(row);
-      });
+      const card=node('section',undefined,'candidate');
+      const allDomains=item.domains||[];
+      const availableCount=allDomains.filter(domain=>domain.status==='available_at_provider').length;
+      const candidateHead=node('div',undefined,'candidate-header');
+      const title=node('div',undefined,'candidate-title');
+      title.append(node('h2',item.name));
+      title.append(node('p',`${availableCount} / ${allDomains.length} ${allDomains.length===1?copy().extensionAvailable:copy().extensionsAvailable}`,'candidate-subtitle'));
+      const badgeText=item.match==='pass'?copy().matches:item.match==='unknown'?copy().unverifiedBadge:copy().excludedBadge;
+      const badgeClass=item.match==='pass'?'pass':item.match==='unknown'?'unknown':'fail';
+      candidateHead.append(title,node('span',badgeText,`badge ${badgeClass}`));
+      card.append(candidateHead);
+      const grid=node('div',undefined,'domains');
+      allDomains.filter(domain=>!only.checked||domain.status==='available_at_provider').forEach(domain=>grid.append(renderDomain(domain)));
+      if(grid.children.length) card.append(grid);
       if(item.reasons?.length&&!only.checked) card.append(node('p',item.reasons.join('; '),'reason'));
       cards.append(card);
     });
+    if((state.data.candidates||[]).length) cards.append(node('p',copy().availableNote,'disclaimer'));
     notifySize();
   }
   const onFilterChange=()=>{if(active) render();};
@@ -71,35 +273,33 @@
   const sizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(notifySize):null;
   if(sizeObserver) sizeObserver.observe(document.body);
   function onMessage(event){
-    if(!active) return;
-    if(event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
+    if(!active||event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
     const message=event.data;
     if(message.method==='ui/resource-teardown'){
-      active=false;
-      state.data=null;
-      sizeObserver?.disconnect();
-      only.removeEventListener('change',onFilterChange);
-      window.removeEventListener('message',onMessage);
-      cards.replaceChildren();
-      summary.textContent='';
-      if(Object.prototype.hasOwnProperty.call(message,'id'))
-        window.parent.postMessage({jsonrpc:'2.0',id:message.id,result:{}},'*');
+      active=false;state.data=null;sizeObserver?.disconnect();only.removeEventListener('change',onFilterChange);
+      window.removeEventListener('message',onMessage);cards.replaceChildren();summary.textContent='';
+      if(Object.prototype.hasOwnProperty.call(message,'id')) window.parent.postMessage({jsonrpc:'2.0',id:message.id,result:{}},'*');
       return;
     }
-    if(message.id===1 && message.result){
+    if(message.id===1&&message.result){
+      applyHostContext(message.result.hostContext||{});
       initialized=true;
-      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');
+      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}} ,'*');
       notifySize();
       return;
     }
+    if(message.method==='ui/notifications/host-context-changed'){
+      applyHostContext(message.params||{});render();return;
+    }
     if(message.method==='ui/notifications/tool-result'){
       const payload=message.params?.structuredContent;
-      state.data=payload?.result||payload||null;
-      render();
+      state.data=payload?.result||payload||null;render();
     }
   }
   window.addEventListener('message',onMessage);
-  window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.1.0'},appCapabilities:{availableDisplayModes:['inline']}}},'*');
+  window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.2.0'},appCapabilities:{availableDisplayModes:['inline','fullscreen']}}},'*');
+  filterLabel.textContent=copy().availableOnly;
+  summary.textContent=copy().waiting;
 })();
 </script>
 </body>

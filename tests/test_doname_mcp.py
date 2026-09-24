@@ -15,6 +15,7 @@ class MCPTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(set(descriptions), {"capabilities", "check_domains", "screen_names"})
             self.assertTrue(descriptions["screen_names"].annotations.read_only_hint)
             self.assertEqual(descriptions["screen_names"].meta["ui"]["resourceUri"], UI_URI)
+            self.assertEqual(UI_URI, "ui://doname/cards/v2.html")
             self.assertIn("names", descriptions["screen_names"].input_schema["properties"])
             self.assertIsNotNone(descriptions["screen_names"].output_schema)
             self.assertIn("DomainOutput", descriptions["screen_names"].output_schema["$defs"])

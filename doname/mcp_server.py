@@ -14,7 +14,7 @@ from . import __version__
 from .engine import check_domains as engine_check, configured_provider
 from .naming import screen_names as engine_screen
 
-UI_URI = "ui://doname/cards/v1.html"
+UI_URI = "ui://doname/cards/v2.html"
 READ_EXTERNAL = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True)
 READ_LOCAL = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 

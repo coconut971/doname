@@ -37,6 +37,8 @@ async def smoke(plugin_root: Path) -> None:
         names = {tool.name for tool in listed.tools}
         if names != EXPECTED_TOOLS:
             raise AssertionError(f"Unexpected MCP tools: {sorted(names)}")
+        screen_tool = next(tool for tool in listed.tools if tool.name == "screen_names")
+        ui_uri = screen_tool.meta["ui"]["resourceUri"]
         capabilities = await client.call_tool("capabilities", {})
         if capabilities.is_error or capabilities.structured_content.get("provider") is not None:
             raise AssertionError("Extracted bundle failed keyless capabilities")
@@ -45,7 +47,7 @@ async def smoke(plugin_root: Path) -> None:
         })
         if screened.is_error or screened.structured_content.get("checked_domains") != 2:
             raise AssertionError("Extracted bundle failed offline naming")
-        ui = await client.read_resource("ui://doname/cards/v1.html")
+        ui = await client.read_resource(ui_uri)
         if "ui/resource-teardown" not in ui.contents[0].text:
             raise AssertionError("Extracted UI resource is missing teardown support")
     print("Extracted bundle: stdio MCP startup, tool discovery, calls and UI resource OK")
