@@ -1,6 +1,6 @@
 # DoName — project memory and refoundation brief
 
-Date: 2026-09-24. Status: DoName 0.1.0 release candidate on `implementation/doname-v1`; no public release yet.
+Date: 2026-09-24. Status: DoName 0.1.0 source and local plugin bundle released on GitHub as `doname-v0.1.0`; no public hosted service.
 
 Repository inspected: `coconut971/isdomainok`, public. Baseline: `main` at `80fea7d9a8cb13fc1509286d7c254c47041ba4b1` (IsDomainOK 2.1.0). Keep this history. **DoName V1** names the new product milestone; do not silently downgrade an already published package's version.
 
@@ -152,4 +152,4 @@ A provider-enabled ChatGPT `check_domains` call then returned registered public 
 
 Review of PR #9 also tightened GoDaddy truth handling: `available=true` is only shown as verified when the response marks it definitive; otherwise prices are withheld and the result remains unconfirmed. Money values use the currency's minor unit rather than assuming two decimals. Cards now label RDAP as the primary source for RDAP statuses and show secondary provider evidence separately. The README and changelog describe tested hosts and release limits. A pattern scan of tracked content and Git diffs found no recognizable PAT, OpenAI key or private-key marker; this cannot prove that every possible secret format is absent.
 
-The public release target is source plus a locally runnable plugin bundle on GitHub, tagged `doname-v0.1.0`. It is not PyPI publication, a production service, or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.
+PR #8 and PR #9 were merged into `main`. The published GitHub release `doname-v0.1.0` contains the source, locally runnable plugin bundle, Python wheel and source distribution with SHA-256 checksums. GitHub secret scanning and push protection are enabled. This is not PyPI publication, a production service, or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.
