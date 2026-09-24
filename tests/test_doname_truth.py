@@ -6,7 +6,7 @@ from doname.engine import resolve
 from doname.models import Evidence
 from doname.network import NetworkError
 from doname.providers import GoDaddyProvider, ProviderResult
-from doname import rdap
+from doname import dns, rdap
 
 
 class ValidationTests(unittest.TestCase):
@@ -35,7 +35,7 @@ class RDAPTests(unittest.TestCase):
     @patch.object(rdap, "_bootstrap", side_effect=NetworkError("timeout"))
     def test_bootstrap_failure_is_not_unsupported(self, *_):
         result = rdap.lookup("sample.com")
-        self.assertEqual(result.status, "error")
+        self.assertEqual(result.status, "timeout")
         self.assertEqual(result.reason, "timeout")
 
     @patch.object(rdap, "_bootstrap", return_value={"com": "https://rdap.example.net"})
@@ -46,6 +46,21 @@ class RDAPTests(unittest.TestCase):
     @patch.object(rdap, "_bootstrap", return_value={})
     def test_missing_coverage(self, *_):
         self.assertEqual(rdap.lookup("sample.com").status, "unsupported")
+
+    @patch.object(rdap, "_COOLDOWNS", {})
+    @patch.object(rdap, "_bootstrap", return_value={"com": "https://rdap.example.net"})
+    @patch.object(rdap, "get_json", side_effect=NetworkError("http_429", 7))
+    def test_retry_after_prevents_immediate_rdap_repeat(self, get, *_):
+        self.assertEqual(rdap.lookup("sample.com").status, "rate_limited")
+        self.assertEqual(rdap.lookup("sample.com").reason, "rdap_retry_after")
+        self.assertEqual(get.call_count, 1)
+
+
+class DNSTests(unittest.TestCase):
+    @patch("doname.dns.dns.resolver.Resolver")
+    def test_nxdomain_is_only_dns_observation(self, resolver):
+        resolver.return_value.resolve.side_effect = dns.dns.resolver.NXDOMAIN()
+        self.assertEqual(dns.observe("sample.com").status, "nxdomain")
 
 
 class ProviderTests(unittest.TestCase):
@@ -77,6 +92,10 @@ class ProviderTests(unittest.TestCase):
         result = self.provider.check("sample.com")
         self.assertEqual(result.evidence.status, "rate_limited")
         self.assertEqual(result.evidence.retry_after_seconds, 12)
+        with patch("doname.providers.get_json") as get:
+            again = self.provider.check("sample.com")
+            get.assert_not_called()
+        self.assertEqual(again.evidence.status, "rate_limited")
 
     @patch("doname.providers.get_json", side_effect=NetworkError("timeout"))
     def test_timeout_is_not_unavailable(self, *_):

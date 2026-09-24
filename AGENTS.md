@@ -4,9 +4,7 @@
 
 Read `docs/doname/PROJECT.md` for the current product direction, its explicit decisions, the static audit and the known limitations. Read `docs/doname/CODEX_PROMPT.md` when implementing the refoundation.
 
-The September 2026 DoName direction supersedes conflicting legacy product instructions in `PROJECT.md`, `TOOLS.md`, descriptors and other IsDomainOK/okitsok documents. Those files describe the old product until migrated; they are not proof of a published package or tested integration. Current explicit user instructions take precedence.
-
-This planning change does not implement or release DoName. Keep plans, implemented features, automated test results and real host validation separate.
+The September 2026 DoName direction supersedes the historical IsDomainOK product. The legacy code and documents remain in Git history. Keep plans, implemented features, automated test results and real host validation separate. Current explicit user instructions take precedence.
 
 ## Non-negotiable boundaries
 
@@ -22,6 +20,6 @@ This planning change does not implement or release DoName. Keep plans, implement
 
 Choose the smallest maintainable implementation that meets the acceptance tests. Reuse correct existing components; replacing broken code is allowed. A language change needs a short evidence-based decision, not a preference assertion. Use supported SDKs and verify current host documentation rather than inventing manifests.
 
-Work on a dedicated implementation branch. Preserve history and unrelated work. Do not force-push, merge into main, publish packages, rename/delete the remote repository or deploy public infrastructure as an incidental implementation step. Report the exact release/admin action still needed. Respect the configured Git identity; do not add fictitious authors or AI co-author trailers.
+Work on the dedicated implementation branch. Preserve history and unrelated work. Do not force-push, merge into main, publish packages, rename/delete the remote repository or deploy public infrastructure as an incidental implementation step. Report the exact release/admin action still needed. Respect the configured Git identity; do not add fictitious authors or AI co-author trailers.
 
 Run available tests; report commands, actual outcomes and untested paths. A passing mock is not a live provider integration or a verified host installation. Keep the project document current without adding private operational data.

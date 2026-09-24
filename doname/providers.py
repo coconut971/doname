@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from collections import deque
+import threading
+import time
 from typing import Protocol
 from urllib.parse import urlencode
 
@@ -29,7 +32,7 @@ def _price(raw: object, *, kind: str, years: int, checked_at: str) -> Price | No
         return None
     minor = raw.get("value")
     currency = raw.get("currencyCode")
-    if type(minor) is not int or minor < 0 or not isinstance(currency, str) or len(currency) != 3 or not currency.isalpha():
+    if type(minor) is not int or minor < 0 or not isinstance(currency, str) or len(currency) != 3 or not currency.isascii() or not currency.isalpha():
         return None
     return Price(str((Decimal(minor) / 100).quantize(Decimal("0.01"))), currency.upper(), years, kind, "GoDaddy", checked_at)
 
@@ -42,27 +45,54 @@ class GoDaddyProvider:
         if not token or "\n" in token or "\r" in token:
             raise ValueError("Invalid provider token")
         self._token = token
+        self._calls: deque[float] = deque()
+        self._cooldown_until = 0.0
+        self._lock = threading.Lock()
+
+    def _admit(self) -> ProviderResult | None:
+        with self._lock:
+            current = time.monotonic()
+            while self._calls and current - self._calls[0] >= 60:
+                self._calls.popleft()
+            delay = self._cooldown_until - current
+            if len(self._calls) >= 55:
+                delay = max(delay, 60 - (current - self._calls[0]))
+            if delay > 0:
+                return ProviderResult(Evidence("rate_limited", self.name, reason="local_or_provider_cooldown",
+                                               retry_after_seconds=max(1, int(delay + .999))))
+            self._calls.append(current)
+        return None
+
+    def _on_network_error(self, exc: NetworkError) -> ProviderResult:
+        if exc.code == "http_429":
+            with self._lock:
+                self._cooldown_until = max(self._cooldown_until, time.monotonic() + (exc.retry_after_seconds or 60))
+        status = "rate_limited" if exc.code == "http_429" else "timeout" if exc.code == "timeout" else "error"
+        return ProviderResult(Evidence(status, self.name, reason=exc.code, retry_after_seconds=exc.retry_after_seconds))
 
     def check(self, domain: str, timeout: float = 3.0) -> ProviderResult:
         # The endpoint is fixed. Only the validated ASCII domain enters the query.
         url = f"{self.endpoint}?{urlencode({'domain': domain, 'optimizeFor': 'ACCURACY'})}"
+        limited = self._admit()
+        if limited:
+            return limited
         try:
             data = get_json(url, headers={"Authorization": f"Bearer {self._token}"}, timeout=timeout)
         except NetworkError as exc:
-            status = "rate_limited" if exc.code == "http_429" else "timeout" if exc.code == "timeout" else "error"
-            return ProviderResult(Evidence(status, self.name, reason=exc.code, retry_after_seconds=exc.retry_after_seconds))
+            return self._on_network_error(exc)
         return self._parse_item(domain, data)
 
     def check_many(self, domains: list[str], timeout: float = 4.0) -> dict[str, ProviderResult]:
         if not 1 <= len(domains) <= 25 or len(set(domains)) != len(domains):
             raise ValueError("GoDaddy accepts 1 to 25 distinct domains")
+        limited = self._admit()
+        if limited:
+            return {domain: limited for domain in domains}
         try:
             data = post_json(self.endpoint, {"domains": domains, "optimizeFor": "ACCURACY"},
                              headers={"Authorization": f"Bearer {self._token}"}, timeout=timeout)
         except NetworkError as exc:
-            status = "rate_limited" if exc.code == "http_429" else "timeout" if exc.code == "timeout" else "error"
-            return {domain: ProviderResult(Evidence(status, self.name, reason=exc.code,
-                                                   retry_after_seconds=exc.retry_after_seconds)) for domain in domains}
+            return {domain: self._on_network_error(exc) for domain in domains}
         items = data.get("items")
         if not isinstance(items, list) or len(items) != len(domains):
             return {domain: ProviderResult(Evidence("error", self.name, reason="invalid_batch_payload")) for domain in domains}

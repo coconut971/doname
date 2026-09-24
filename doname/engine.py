@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 
@@ -14,11 +15,24 @@ from .providers import AvailabilityProvider, GoDaddyProvider, ProviderResult
 MAX_WORKERS = 4
 CALL_TIMEOUT = 3.0
 TOTAL_DEADLINE = 18.0
+_PROVIDER: GoDaddyProvider | None = None
+_PROVIDER_TOKEN: str | None = None
+_PROVIDER_LOCK = threading.Lock()
 
 
 def configured_provider() -> AvailabilityProvider | None:
+    global _PROVIDER, _PROVIDER_TOKEN
     token = os.environ.get("GODADDY_PAT")
-    return GoDaddyProvider(token) if token else None
+    if not token:
+        with _PROVIDER_LOCK:
+            _PROVIDER = None
+            _PROVIDER_TOKEN = None
+        return None
+    with _PROVIDER_LOCK:
+        if _PROVIDER is None or token != _PROVIDER_TOKEN:
+            _PROVIDER = GoDaddyProvider(token)
+            _PROVIDER_TOKEN = token
+        return _PROVIDER
 
 
 def resolve(domain: str, registration: Evidence | None, provider: ProviderResult | None, dns_evidence: Evidence | None = None) -> DomainResult:

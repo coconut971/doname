@@ -1,0 +1,3 @@
+include plugin.json mcp.json uv.lock
+recursive-include skills/doname-naming *.md
+recursive-include scripts *.py *.js

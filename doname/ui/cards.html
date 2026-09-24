@@ -35,15 +35,15 @@
     entries.forEach(item=>{
       const card=node('section','','card');
       const heading=node('h2',item.name+' '); heading.append(node('span',item.match==='pass'?'Matches':item.match==='unknown'?'Unverified':'Excluded','pill '+item.match)); card.append(heading);
-      (item.domains||[]).forEach(d=>{
+      (item.domains||[]).filter(d=>!only.checked||d.status==='available_at_provider').forEach(d=>{
         const row=node('div','','row');
         row.append(node('div',d.domain+' · '+(label[d.status]||d.status),'domain'));
         row.append(node('div',price(d.registration_price),'price'));
         const evidence=d.registrability||d.registration;
-        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked',d.renewal_price?'Renewal '+price(d.renewal_price):'Renewal unknown'];
+        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked',d.renewal_price?'Indicative renewal '+price(d.renewal_price):'Renewal unknown'];
         row.append(node('div',meta.join(' · '),'meta'));card.append(row);
       });
-      if(item.reasons?.length) card.append(node('p',item.reasons.join('; '),'reason'));
+      if(item.reasons?.length&&!only.checked) card.append(node('p',item.reasons.join('; '),'reason'));
       cards.append(card);
     });
   }

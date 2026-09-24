@@ -14,6 +14,8 @@ BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json"
 _CACHE: tuple[float, dict[str, str]] | None = None
 _LOCK = threading.Lock()
 _TTL = 86400
+_COOLDOWNS: dict[str, float] = {}
+_COOLDOWN_LOCK = threading.Lock()
 
 
 def _safe_base(url: str) -> bool:
@@ -60,17 +62,27 @@ def lookup(domain: str, timeout: float = 3.0) -> Evidence:
     try:
         mapping = _bootstrap(timeout)
     except NetworkError as exc:
-        return Evidence("error", "IANA RDAP bootstrap", reason=exc.code)
+        status = "rate_limited" if exc.code == "http_429" else "timeout" if exc.code == "timeout" else "error"
+        return Evidence(status, "IANA RDAP bootstrap", reason=exc.code,
+                        retry_after_seconds=exc.retry_after_seconds)
     tld = domain.rsplit(".", 1)[-1]
     base = mapping.get(tld)
     if not base:
         return Evidence("unsupported", "IANA RDAP bootstrap", reason="tld_not_listed")
     source = urlsplit(base).hostname or "RDAP"
+    with _COOLDOWN_LOCK:
+        delay = _COOLDOWNS.get(source, 0) - time.monotonic()
+    if delay > 0:
+        return Evidence("rate_limited", source, reason="rdap_retry_after",
+                        retry_after_seconds=max(1, int(delay + .999)))
     try:
         data = get_json(f"{base}/domain/{quote(domain, safe='')}", timeout=timeout)
     except NetworkError as exc:
         if exc.code == "http_404":
             return Evidence("not_found", source, reason="rdap_object_not_found")
+        if exc.code == "http_429":
+            with _COOLDOWN_LOCK:
+                _COOLDOWNS[source] = max(_COOLDOWNS.get(source, 0), time.monotonic() + (exc.retry_after_seconds or 60))
         status = "rate_limited" if exc.code == "http_429" else "timeout" if exc.code == "timeout" else "error"
         return Evidence(status, source, reason=exc.code, retry_after_seconds=exc.retry_after_seconds)
     if data.get("objectClassName") != "domain" or str(data.get("ldhName", "")).lower().rstrip(".") != domain:
@@ -78,5 +90,5 @@ def lookup(domain: str, timeout: float = 3.0) -> Evidence:
     details = {}
     for event in data.get("events", []) if isinstance(data.get("events"), list) else []:
         if isinstance(event, dict) and event.get("eventAction") in {"registration", "expiration"} and isinstance(event.get("eventDate"), str):
-            details[event["eventAction"]] = event["eventDate"]
+            details[event["eventAction"]] = event["eventDate"][:64]
     return Evidence("registered", source, details=details)

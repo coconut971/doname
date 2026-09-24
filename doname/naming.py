@@ -77,8 +77,9 @@ def screen_names(names: list[str], extensions: list[str] | None = None, *, match
         item = {
             "name": name,
             "match": decision,
-            "domains": [reports[domain].to_dict() for domain in group],
-            "reasons": [f"{domain}: {evaluations[domain][1]}" for domain in group if evaluations[domain][0] != "pass"],
+            "domains": [reports[domain].to_dict() for domain in group
+                        if not available_only or evaluations[domain][0] == "pass"],
+            "reasons": [] if available_only else [f"{domain}: {evaluations[domain][1]}" for domain in group if evaluations[domain][0] != "pass"],
         }
         if decision == "pass":
             candidates.append(item)

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "doname",
+  "version": "0.1.0",
+  "description": "Private, evidence-first naming and domain research for AI agents",
+  "author": {"name": "coconut971"},
+  "homepage": "https://github.com/coconut971/isdomainok",
+  "repository": "https://github.com/coconut971/isdomainok",
+  "license": "MIT",
+  "keywords": ["domain", "naming", "mcp", "research"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "DoName",
+        "shortDescription": "Find names with checked domain evidence",
+        "longDescription": "Screen project names across extensions with registrar availability and prices when configured, or honest keyless RDAP evidence.",
+        "developerName": "coconut971",
+        "category": "Productivity",
+        "capabilities": ["Read"],
+        "websiteURL": "https://github.com/coconut971/isdomainok",
+        "defaultPrompt": ["Find short names whose .com and .fr are both available within my budget."]
+      }
+    }
+  }
+}

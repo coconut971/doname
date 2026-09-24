@@ -20,6 +20,6 @@ def observe(domain: str, timeout: float = 2.0) -> Evidence:
         return Evidence("no_ns_answer", "system DNS resolver")
     except dns.exception.Timeout:
         return Evidence("timeout", "system DNS resolver")
-    except (dns.resolver.NoNameservers, dns.resolver.YXDOMAIN, OSError):
+    except (dns.exception.DNSException, OSError):
         return Evidence("error", "system DNS resolver")
     return Evidence("records_found" if answer else "no_ns_answer", "system DNS resolver")

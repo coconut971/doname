@@ -23,7 +23,7 @@ class InputError(ValueError):
 @lru_cache(maxsize=1)
 def _extractor():
     # A bundled public suffix list: no hidden HTTP fetch for validation.
-    return tldextract.TLDExtract(suffix_list_urls=(), include_psl_private_domains=False)
+    return tldextract.TLDExtract(cache_dir=None, suffix_list_urls=(), include_psl_private_domains=False)
 
 
 def _ascii(value: str) -> str:

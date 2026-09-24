@@ -1,335 +1,108 @@
-<p align="center">
-  <img src="docs/isdomainok.svg" alt="IsDomainOK banner" width="100%" />
-</p>
+# DoName
 
-<p align="center">
-  <img alt="CI" src="https://github.com/coconut971/okitsok/actions/workflows/ci.yml/badge.svg" />
-  <img alt="Python 3.9+" src="https://img.shields.io/badge/core-python%203.9%2B-3776AB" />
-  <img alt="MCP Python 3.10+" src="https://img.shields.io/badge/MCP-python%203.10%2B-8A2BE2" />
-  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-2ea44f" />
-  <img alt="Version 2.1" src="https://img.shields.io/badge/version-2.1-8be9fd" />
-</p>
+DoName helps an AI turn a naming brief into a short selection with checked domain evidence. The AI invents names; DoName validates exact domains, checks registration data and, when configured, asks a registrar whether it offers registration and at what indicative price. DoName V1 has no purchase, reservation, DNS update, quote or checkout operation.
 
-# IsDomainOK
+This repository is the **implementation branch**, not a published package or hosted plugin. The former IsDomainOK 2.1.0 code remains in Git history; the new Python package is `doname` 0.1.0. The MIT license and attribution remain intact.
 
-**Local-first domain intelligence for humans, scripts and AI agents.**
+## Try from a checkout
 
-IsDomainOK does not trust a single availability signal. It can combine DNS evidence, authoritative RDAP registration data and GoDaddy's Domains API, then expose a conservative consensus status, confidence level, registration/renewal pricing and optional public resale signals.
-
-Version 2.1 also exposes the same engine as a **local MCP server** and ships a portable **Agent Skill** for project/product/company naming workflows.
-
-> IsDomainOK never purchases or registers domains. Registrar integration is read-only.
-
-## Why
-
-AI assistants are good at inventing names but usually bad at knowing which suggestions are actually usable.
-
-IsDomainOK separates the jobs:
-
-```text
-AI agent
-  |
-  | invents names
-  v
-IsDomainOK
-  |-- DNS
-  |-- RDAP
-  `-- GoDaddy (user's own token)
-  |
-  v
-availability + confidence + real registrar pricing
-  |
-  v
-AI agent ranks the surviving names
-```
-
-There is no hosted IsDomainOK API requirement, no shared registrar account and no central secret store.
-
-## The three-signal model
-
-When `GODADDY_PAT` is configured, a normal check uses:
-
-1. **DNS** — fast evidence from NS, SOA, A and AAAA records.
-2. **RDAP** — public registration data discovered through the IANA bootstrap registry.
-3. **GoDaddy Domains v3** — registrar availability with `optimizeFor=ACCURACY`, plus indicative registration and renewal prices.
-
-The sources remain separate in JSON. IsDomainOK never silently turns disagreement into certainty.
-
-Typical outcomes:
-
-- `available` + `confidence=high` — independent availability signals agree.
-- `registered` + `confidence=high` — independent registration/unavailability signals agree.
-- `possibly_available` — DNS says NXDOMAIN but no stronger source confirmed it.
-- `conflict` — strong sources disagree; manual confirmation is recommended.
-- `unknown` — insufficient evidence.
-
-## Features
-
-- DNS checks: NS, SOA, A and AAAA
-- RDAP lookup using the IANA bootstrap registry
-- automatic GoDaddy availability checks when `GODADDY_PAT` exists
-- GoDaddy `ACCURACY` optimization
-- indicative registration and renewal prices
-- optional locked read-only registration quote with `--price`
-- registrar, registration date, expiration date and nameservers when public
-- multiple names and custom TLDs in one call
-- parallel checks
-- public domain-for-sale signal and asking-price detection
-- stable JSON output
-- local MCP server for AI hosts
-- portable Agent Skill for naming workflows
-- no database, account, telemetry or hosted backend required
-
-## Install the CLI
-
-The package is not claimed as published on PyPI yet. For now install from a clone:
+Python 3.10+ and [uv](https://docs.astral.sh/uv/) are needed for the portable local plugin configuration. From a clean clone of this branch:
 
 ```bash
-git clone https://github.com/coconut971/okitsok.git
-cd okitsok
-python -m pip install -e .
+uv sync --locked
+uv run --locked doname capabilities
+uv run --locked doname check example.com
+uv run --locked doname screen nameone nametwo --extensions com fr --match all
 ```
 
-Core CLI support remains Python 3.9+.
+`example.com` is a reserved example domain. The invented base names in the last command are illustrative, not live recommendations. For a fully offline check of validation and grouping, add `--offline`; that mode reports `not_verified` for every domain.
 
-Once published, the intended install command will be:
+To get registrar availability and price data, create your own [GoDaddy Personal Access Token](https://developer.godaddy.com/en/docs/api-users/getting-started/authentication) with `domains.domain:read` and set `GODADDY_PAT` in the server process environment. Do not put it in a prompt, shell history, repository file or MCP tool arguments. Without a token, DoName remains useful through keyless RDAP, but cannot confirm purchase availability or price.
 
-```bash
-pipx install isdomainok
-```
-
-## Install MCP support
-
-The official MCP Python SDK v2 requires Python 3.10+. MCP is therefore an optional extra rather than a dependency of the core CLI:
-
-```bash
-python -m pip install -e '.[mcp]'
-```
-
-This installs the local stdio entry point:
-
-```bash
-isdomainok-mcp
-```
-
-## Configure GoDaddy
-
-Create a GoDaddy Personal Access Token with the required Domains permissions and keep it outside the repository:
-
-```bash
-export GODADDY_PAT="your-token"
-```
-
-PowerShell:
+PowerShell example after the token has been securely placed in an environment variable by your normal secret manager:
 
 ```powershell
-$env:GODADDY_PAT="your-token"
+uv run --locked doname capabilities
+uv run --locked doname screen nameone nametwo --extensions com fr --match all --budget 30 --currency EUR --available-only
 ```
 
-Do **not** commit the token to Git or place it in prompts/config examples. With the environment variable configured, GoDaddy checks become automatic.
+The budget is compared to **each domain's total first registration term**, which can be more than one year for some TLDs. No currency conversion is performed. GoDaddy prices are indicative, specific to its account and market context, and can change. Renewal is separate and may be absent; the API renewal amount can reflect a discounted auto-renewal rate rather than a manual renewal price.
 
-Skip GoDaddy for one call:
+## The AI workflow
+
+The [DoName naming skill](skills/doname-naming/SKILL.md) tells an agent to understand the brief, generate and judge a small pool itself, check names in a bounded batch, then explain a shortlist with sources and limits. The brief stays with the AI host. The domain provider receives only checked domains.
+
+Three MCP tools cover the workflow:
+
+| Tool | Purpose |
+| --- | --- |
+| `capabilities` | Provider state, keyless mode and limits, without exposing credentials. |
+| `check_domains` | Batch check 1–25 exact registrable domains. Optional DNS observation and offline mode. |
+| `screen_names` | Group up to 12 base names across extensions, enforce AND/OR, mandatory TLDs and budget, optionally show only matched names. |
+
+For `.com` **and** `.fr`, use `extensions=["com","fr"]`, `match="all"`. For `.com` mandatory and `.fr` optional, use `match="any"`, `required_extensions=["com"]`. `available_only=true` shows only verified available domains within eligible names. Unknown prices cannot satisfy a budget. If a provider is absent, names can be shortlisted as unverified, never as confirmed available.
+
+Results include source, `checked_at`, computed `age_seconds`, provider, reason and separate registration/renewal prices where supplied. `screen_names` also attaches a compact [MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) UI resource with cards and a local available-only filter for hosts that support it. The same tool returns complete structured data to hosts that render no UI.
+
+## Meaning of the statuses
+
+| Status | Meaning |
+| --- | --- |
+| `registered` | A correctly discovered RDAP service returned a validated domain object. |
+| `not_found_in_registration_data` | RDAP returned 404; registrability is unconfirmed. |
+| `available_at_provider` | The named provider offered registration at the checked time. |
+| `unavailable_at_provider` | The provider did not offer registration; the domain is not necessarily registered. |
+| `conflict` | RDAP returned a registered object while the provider offered registration. |
+| `not_verified` | Evidence is missing, timed out, malformed, unsupported, or offline. |
+
+DNS is optional and informational. NXDOMAIN says the DNS name was not found by that resolver. It never confirms registrability. DoName does not assign confidence percentages or claim trademark clearance.
+
+## MCP transports and plugin packaging
+
+Local stdio, with no application logs on stdout:
 
 ```bash
-isdomainok lightsraw --no-godaddy
+uv run --locked doname-mcp
 ```
 
-Use DNS only:
+Local Streamable HTTP on `127.0.0.1:8765/mcp`:
 
 ```bash
-isdomainok lightsraw --dns-only
+uv run --locked doname-mcp --http
 ```
 
-## CLI quick start
+The repository root has a portable [Agent Plugins](https://agent-plugins.org/specification) `plugin.json`, `mcp.json` and `skills/` package. Its `mcp.json` uses `uv` and the plugin root to start the local stdio server. `uv` must be installed on the host; first run may install locked Python dependencies. The package does not contain a hosted MCP address or a credential. A wheel carries the engine and UI; the plugin bundle carries source, lockfile, manifest and skill.
 
-```bash
-isdomainok lightsraw
-```
+Host routes differ:
 
-Default TLDs are `.com`, `.fr`, `.io`, `.ai` and `.app`.
+| Host | Route | Validated here |
+| --- | --- | --- |
+| MCP SDK client | Local stdio/in-process and loopback HTTP | Yes: initialize, list and call. |
+| Codex CLI/IDE | Add stdio command or install local plugin package | Codex CLI called `capabilities` via an ephemeral MCP config; IDE not tried. |
+| Claude Code | Add stdio command or project MCP configuration | Claude Code called `capabilities` via a temporary MCP config. |
+| ChatGPT desktop | Local plugin/MCP support depends on surface and policy | Not tried. |
+| ChatGPT web | HTTPS Streamable HTTP endpoint or private Secure MCP Tunnel for development | No DoName remote deployment or host test. |
+| Other MCP Apps hosts | MCP tool plus `ui://` resource | Resource contract tested; visual host rendering not yet tried. |
 
-With `GODADDY_PAT`, output can include:
+Codex: `codex mcp add doname -- uv run --locked --project <checkout-path> -- python -m doname.mcp_server`. Claude Code: `claude mcp add doname -- uv run --locked --project <checkout-path> -- python -m doname.mcp_server`. Replace `<checkout-path>` with the absolute path to this checkout. Both commands are examples from their current [Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) and [Claude Code](https://code.claude.com/docs/en/mcp) MCP syntax; no installation in those hosts is claimed yet.
 
-```text
-lightsraw.com                  registered          confidence=high  godaddy=unavailable
-lightsraw.ai                   available           confidence=high  godaddy=available  register=74.99 USD  renew=74.99 USD
-```
+For ChatGPT web, a localhost endpoint and `mcp.json` are insufficient. A future DoName-operated service needs a stable public HTTPS `/mcp`, server-side provider credentials, authentication/authorization, rate limiting, log privacy, domain verification and plugin review. The [official OpenAI plugin guide](https://developers.openai.com/plugins/deploy/connect-chatgpt) distinguishes a private development tunnel from public submission. This repository does not deploy or publish such a service.
 
-Prices above are only an illustration; IsDomainOK prints values returned at request time.
+## Privacy and network limits
 
-Check exact domains:
+No search history, database or telemetry is implemented. No name brief is sent to the registrar. Network checks disclose each checked domain to the selected RDAP service and, if configured, GoDaddy. RDAP bootstrap metadata comes from IANA. Optional DNS observations disclose domains to the machine's resolver. Offline mode performs no domain network lookup. DoName never visits the candidate's website or arbitrary model-supplied URLs.
 
-```bash
-isdomainok example.com example.net
-```
-
-Choose TLDs:
-
-```bash
-isdomainok lightsraw --tlds com fr ai dev tech
-```
-
-Machine-readable output:
-
-```bash
-isdomainok lightsraw --json
-```
-
-## MCP tools
-
-The MCP server exposes four read-only tools.
-
-### `about_isdomainok`
-
-Returns capabilities, version, default TLDs and whether GoDaddy is configured. It never exposes the token.
-
-### `check_domain`
-
-Checks one exact domain with the same consensus engine as the CLI.
-
-### `check_name`
-
-Checks one base name across multiple TLDs.
-
-### `screen_names`
-
-Built specifically for naming agents. Pass generated project/product/company names in one batch and optionally provide TLD and registration-budget constraints.
-
-Conceptual request:
-
-```json
-{
-  "names": ["framevo", "cutory", "reelio"],
-  "tlds": ["com", "ai"],
-  "max_registration_price": 150,
-  "currency": "USD"
-}
-```
-
-By default it only keeps confirmed `available` results, excludes `conflict`/`unknown`/registered domains, and sorts survivors by confidence and known registration price.
-
-If a price ceiling is supplied, a domain whose price is unknown is excluded because the budget cannot be verified.
-
-## Agent Skill
-
-The portable naming Skill lives at:
-
-```text
-skills/isdomainok-domain-naming/SKILL.md
-```
-
-It follows the open Agent Skills format and is intended for Codex, Claude Code and other compatible agent clients.
-
-The Skill tells the agent to:
-
-1. understand the naming brief;
-2. generate a broad pool of names itself;
-3. batch-screen them through IsDomainOK;
-4. reject registered/conflicting/unknown candidates;
-5. respect a registration budget when supplied;
-6. rank the remaining names on creative quality plus domain evidence;
-7. clearly distinguish domain availability from trademark clearance.
-
-The AI model remains responsible for creativity. IsDomainOK does **not** call another model API.
-
-## Claude Code
-
-A minimal stdio example is included at:
-
-```text
-examples/claude-code-mcp.json
-```
-
-After installing `.[mcp]`, configure Claude Code to launch `isdomainok-mcp`. Let the process inherit `GODADDY_PAT` from the user's environment rather than embedding the token in JSON.
-
-See [`docs/AGENT_INTEGRATIONS.md`](docs/AGENT_INTEGRATIONS.md) for the complete integration model.
-
-## Locked registration price
-
-A normal GoDaddy availability request can return indicative registration/renewal prices. For stronger pre-purchase verification:
-
-```bash
-isdomainok mynewname.com --price
-```
-
-`--price` requests a one-year registration quote. The quote re-checks availability and can lock the registration price for its validity window.
-
-**There is still no purchase endpoint in IsDomainOK.**
-
-## Public resale prices
-
-Inspect a registered domain's public landing page with:
-
-```bash
-isdomainok example.com --market
-```
-
-If a recognizable marketplace or explicit asking price is present, IsDomainOK reports it. No resale valuation is invented when the owner has not published one.
-
-## Accuracy rules
-
-IsDomainOK intentionally stays conservative:
-
-- GoDaddy available + RDAP available -> `available`, high confidence.
-- GoDaddy unavailable + RDAP registered -> `registered`, high confidence.
-- GoDaddy available while RDAP registered -> `conflict`.
-- DNS contains positive records while RDAP/GoDaddy says available -> `conflict`.
-- DNS NXDOMAIN alone -> `possibly_available`, not a guaranteed purchase opportunity.
-
-The registrar still performs the final authoritative verification at quote/registration time.
-
-## Price limitations
-
-There are two very different prices:
-
-1. **Registration price** for an unregistered domain — registrar-specific and obtainable through GoDaddy when credentials are configured.
-2. **Resale/asking price** for a registered domain — knowable only when the owner/marketplace publishes it or a broker supplies it.
-
-IsDomainOK returns price unavailable rather than fabricating a resale valuation.
-
-## Privacy and security
-
-Depending on configuration and flags, IsDomainOK may contact:
-
-- DNS resolvers configured on the machine
-- IANA's RDAP bootstrap registry and authoritative RDAP services
-- GoDaddy's Domains API when `GODADDY_PAT` is configured
-- the target domain when `--market` is enabled
-
-No telemetry is sent by IsDomainOK itself. The GoDaddy token is read from the environment and never included in tool/CLI output.
-
-The MCP server is read-only with respect to registrars and exposes no registration or purchase tool.
-
-## Legal boundary
-
-Domain availability is not trademark clearance, company-name clearance or legal permission to use a brand. Commercial naming decisions should be followed by an appropriate trademark/company-name check.
-
-## Compatibility
-
-The Python package internals remain under `okitsok` during the v2 transition. Both CLI commands work:
-
-```bash
-isdomainok example
-okitsok example
-```
+Requests, response bodies, batch size, concurrency and total duration are bounded. API redirects are rejected; provider URLs are fixed; RDAP URLs are selected from IANA bootstrap data and screened for HTTPS/public hostnames. These application controls do not inspect the AI host, reverse proxy or infrastructure logs. A public service requires its own privacy and abuse review.
 
 ## Development
 
-Core tests:
-
 ```bash
-python -m unittest discover -s tests -v
+uv sync --locked
+uv run --locked python -m unittest discover -s tests -v
+uv run --locked python scripts/benchmark.py
+node scripts/ui_smoke.js
+uv build
+uv run --locked python scripts/build_plugin.py
 ```
 
-MCP test (Python 3.10+):
-
-```bash
-python -m pip install -e '.[mcp]'
-python -m unittest tests.test_mcp -v
-```
-
-CI tests the core on Python 3.9, 3.11 and 3.13, plus a dedicated MCP v2 job on Python 3.13.
-
-## License
-
-MIT
+See [project memory](docs/doname/PROJECT.md) for decisions, measured validation and remaining work. The original [implementation brief](docs/doname/CODEX_PROMPT.md) is preserved as a historical reference.

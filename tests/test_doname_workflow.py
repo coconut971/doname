@@ -51,6 +51,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result["excluded"], [])
         self.assertEqual(result["excluded_summary"]["excluded"], 1)
 
+    def test_available_only_hides_unavailable_optional_extension(self):
+        result = screen_names(["beta"], ["com", "fr"], match="any", available_only=True)
+        self.assertEqual([item["domain"] for item in result["candidates"][0]["domains"]], ["beta.fr"])
+        self.assertEqual(result["candidates"][0]["reasons"], [])
+
     def test_invalid_budget_and_required_extension(self):
         with self.assertRaises(InputError):
             screen_names(["alpha"], ["com"], max_registration_price=10)
