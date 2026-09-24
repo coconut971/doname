@@ -14,7 +14,7 @@ from . import __version__
 from .engine import check_domains as engine_check, configured_provider
 from .naming import screen_names as engine_screen
 
-UI_URI = "ui://doname/cards/v2.html"
+UI_URI = "ui://doname/cards/v3.html"
 READ_EXTERNAL = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True)
 READ_LOCAL = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 
@@ -122,7 +122,7 @@ def _domain_line(item: dict[str, Any]) -> str:
 
 mcp = MCPServer(
     "DoName", version=__version__,
-    instructions="The host AI invents and judges names. Use screen_names once for a bounded batch and explicit TLD/budget constraints; use check_domains for exact domains. Only available_at_provider means a registrar offered registration at check time. RDAP 404 and DNS NXDOMAIN do not confirm availability. No trademark clearance or purchasing.",
+    instructions="The host AI invents and judges names. For unconstrained discovery, screen a compact .com/.fr/.ai/.io/.app set with match='any'; when users specify suffixes, preserve their AND/OR and mandatory-suffix intent. Use screen_names once for a bounded batch and budget constraints; use check_domains for exact domains. Only available_at_provider means a registrar offered registration at check time. RDAP 404 and DNS NXDOMAIN do not confirm availability. No trademark clearance or purchasing.",
 )
 
 
@@ -154,10 +154,10 @@ def check_domains(domains: list[str], include_dns: bool = False, offline: bool =
 
 @mcp.tool(title="Screen project names", annotations=READ_EXTERNAL,
           meta={"ui": {"resourceUri": UI_URI}})
-def screen_names(names: list[str], extensions: list[str] | None = None, match: str = "all",
+def screen_names(names: list[str], extensions: list[str] | None = None, match: str | None = None,
                  required_extensions: list[str] | None = None, max_registration_price: float | None = None,
                  currency: str | None = None, available_only: bool = False, offline: bool = False) -> Annotated[CallToolResult, ScreenOutput]:
-    """Screen up to 12 AI-generated base names across 1–5 public suffixes (max 25 domains). match='all' requires every extension; 'any' requires one. required_extensions enforces mandatory TLDs such as .com. Budget applies to each domain's total first registration term in its stated currency; unknown prices never pass. available_only shows only verified available domains in eligible names. Returns grouped evidence and concise reasons. No brief or purchase action."""
+    """Screen up to 12 AI-generated base names across 1–5 public suffixes (max 25 domains). Without extensions, checks .com, .fr, .ai, .io and .app and defaults to match='any'; when extensions are explicit, match defaults to 'all'. match='all' requires every extension; 'any' requires one. required_extensions enforces mandatory TLDs such as .com. Budget applies to each domain's total first registration term in its stated currency; unknown prices never pass. available_only shows only verified available domains in eligible names. Returns grouped evidence and concise reasons. No brief or purchase action."""
     data = engine_screen(names, extensions, match=match, required_extensions=required_extensions,
                          max_registration_price=max_registration_price, currency=currency,
                          available_only=available_only, offline=offline)
@@ -177,7 +177,7 @@ def screen_names(names: list[str], extensions: list[str] | None = None, match: s
 @mcp.resource(UI_URI, name="doname_cards", title="DoName domain cards",
               mime_type="text/html;profile=mcp-app")
 def domain_cards() -> str:
-    """Compact, local-only visualisation of DoName screen results."""
+    """Compact, interactive domain results and exact-domain check view."""
     return files("doname").joinpath("ui/cards.html").read_text(encoding="utf-8")
 
 

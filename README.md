@@ -44,9 +44,9 @@ Three MCP tools cover the workflow:
 | `check_domains` | Batch check 1–25 exact registrable domains. Optional DNS observation and offline mode. |
 | `screen_names` | Group up to 12 base names across extensions, enforce AND/OR, mandatory TLDs and budget, optionally show only matched names. |
 
-For `.com` **and** `.fr`, use `extensions=["com","fr"]`, `match="all"`. For `.com` mandatory and `.fr` optional, use `match="any"`, `required_extensions=["com"]`. `available_only=true` shows only domains with definitive provider availability within eligible names. Unknown prices cannot satisfy a budget. If a provider is absent, names can be shortlisted as unverified, never as confirmed available.
+When no extensions are supplied, name screening checks `.com`, `.fr`, `.ai`, `.io` and `.app` using `match="any"`. For `.com` **and** `.fr`, use `extensions=["com","fr"]`, `match="all"`. For `.com` mandatory and `.fr` optional, use `match="any"`, `required_extensions=["com"]`. `available_only=true` shows only domains with definitive provider availability within eligible names. Unknown prices cannot satisfy a budget. If a provider is absent, names can be shortlisted as unverified, never as confirmed available.
 
-Results include source, `checked_at`, computed `age_seconds`, provider, reason and separate registration/renewal prices where supplied. `screen_names` also attaches a compact [MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) UI resource with cards and a local available-only filter for hosts that support it. The same tool returns complete structured data to hosts that render no UI.
+Results include source, `checked_at`, computed `age_seconds`, provider, reason and separate registration/renewal prices where supplied. `screen_names` attaches a compact [MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) result card when supported. The AI decides which candidates to request; the card has no manual availability filter. Hosts advertising MCP Apps server-tool calls also get a quick search: a base name checks `.com`, `.fr`, `.ai`, `.io` and `.app`, while a full domain such as `lune.ai` checks that exact domain. Name search shows provider-confirmed available extensions only; freshness and source evidence remain in the expandable details. Hosts without server-tool support retain the full text/structured flow.
 
 ## Meaning of the statuses
 
@@ -85,7 +85,7 @@ Host routes differ:
 | Codex CLI/IDE | Add stdio command or install local plugin package | Codex CLI called `capabilities` via an ephemeral MCP config; IDE not tried. |
 | Claude Code | Add stdio command or project MCP configuration | Claude Code called `capabilities` via a temporary MCP config. |
 | ChatGPT desktop | Local plugin/MCP support depends on surface and policy | Not tried. |
-| ChatGPT web | Private Secure MCP Tunnel in developer mode | **Tested:** offline, keyless RDAP and live GoDaddy calls; cards and filter rendered. The temporary local tunnel was stopped afterward. |
+| ChatGPT web | Private Secure MCP Tunnel in developer mode | **Previously tested:** the v2 cards rendered in offline, keyless RDAP and live GoDaddy calls. The v3 card design and in-card domain check are pending a new host test. The temporary local tunnel was stopped afterward. |
 | Other MCP Apps hosts | MCP tool plus `ui://` resource | Resource contract tested; visual rendering not tried elsewhere. |
 
 Codex: `codex mcp add doname -- uv run --locked --project <checkout-path> -- python -m doname.mcp_server`. Claude Code: `claude mcp add doname -- uv run --locked --project <checkout-path> -- python -m doname.mcp_server`. Replace `<checkout-path>` with the absolute path to this checkout. Both routes were tested with `capabilities` through temporary configurations; no global host configuration was changed.

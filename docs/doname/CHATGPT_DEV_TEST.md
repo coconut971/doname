@@ -2,6 +2,8 @@
 
 The shortest supported test path for DoName is an OpenAI [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) to its local stdio server. The tunnel is for a private developer-mode connection, not plugin publication. It needs a Platform tunnel ID, a runtime API key, tunnel permissions and access to ChatGPT developer mode in the target workspace. The tunnel must be associated with that ChatGPT workspace.
 
+The 2026-09-24 observations below apply to UI resource v2. Resource v3 removes the manual availability checkbox and adds a host-capability-gated search through MCP Apps `tools/call`: a base name checks `.com`, `.fr`, `.ai`, `.io` and `.app`; a full domain such as `lune.ai` checks that domain directly. Re-run the visual and interaction checks below before claiming v3 works in ChatGPT.
+
 ## Local preparation
 
 From a checkout of `implementation/doname-v1`, install the locked dependencies and verify the local server before involving ChatGPT:
@@ -27,14 +29,14 @@ The first visual test can use keyless/offline synthetic names. A GoDaddy credent
    ```
 
 3. In ChatGPT, enable **Settings → Security and login → Developer mode** if the workspace permits it. Go to **Plugins → + → Create MCP App**, select **Tunnel** as the connection type, choose that tunnel or enter its ID, and confirm the three discovered tools and UI metadata. These are the current [OpenAI developer-mode connection steps](https://developers.openai.com/plugins/deploy/connect-chatgpt). If the creation menu does not refresh after enabling developer mode, reload the Plugins page.
-4. Start a new conversation with the developer-mode connection enabled. First ask for `screen_names` with invented names such as `donamealpha` and `donamebeta`, `.com` and `.fr`, and `offline=true`; no domain lookup is made in that mode. Confirm the cards appear, the available-only filter behaves, and the text/structured tool result remains useful if the host does not render the View. Then run a keyless synthetic live check if wanted. Do not submit real user search briefs or private candidates during this integration test.
+4. Start a new conversation with the developer-mode connection enabled. First ask for `screen_names` with invented names such as `donamealpha` and `donamebeta`, `.com` and `.fr`, and `offline=true`; no domain lookup is made in that mode. Confirm the compact cards appear without an `Available only` control and that the text/structured tool result remains useful if the host does not render the View. If the host advertises `serverTools`, search a synthetic base name and confirm the five default extensions, then enter an exact controlled test domain such as `donamealpha.ai` and confirm it calls `check_domains`. Otherwise the search bar should stay hidden and the conversation path should remain usable. Do not submit real user search briefs or private candidates during this integration test.
 5. After UI changes, restart the server/tunnel, refresh the MCP connection in ChatGPT and start a new conversation. Record whether the View initialized, showed the tool result and closed cleanly; keep screenshots and tool traces outside the public repository. Stop `tunnel-client` and remove the temporary developer-mode connection/tunnel when finished.
 
 ChatGPT may still retain app invocation data under the workspace's normal logging and compliance policy. DoName's absence of application search telemetry does not control host or tunnel administration logs. The [OpenAI tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) describes this boundary.
 
 A public HTTPS Streamable HTTP endpoint is an alternative for developer-mode testing, but `http://127.0.0.1:8765/mcp` is not reachable from ChatGPT directly. Public plugin submission needs a stable, publicly reachable HTTPS endpoint and separate review; this guide performs neither deployment nor publication.
 
-## Real host validation on 2026-09-24
+## Real host validation on 2026-09-24 (UI resource v2)
 
 An official `tunnel-client` v0.0.14 connected DoName's local stdio server to a private ChatGPT developer-mode MCP App. Its local readiness endpoint returned HTTP 200. The temporary tunnel and runtime key were kept outside the repository; no public endpoint or plugin publication was created.
 
