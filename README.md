@@ -75,7 +75,7 @@ Local Streamable HTTP on `127.0.0.1:8765/mcp`:
 uv run --locked doname-mcp --http
 ```
 
-The repository root has a portable [Agent Plugins](https://agent-plugins.org/specification) `plugin.json`, `mcp.json` and `skills/` package. Its `mcp.json` uses `uv` and the plugin root to start the local stdio server. `uv` must be installed on the host; first run may install locked Python dependencies. The package does not contain a hosted MCP address or a credential. A wheel carries the engine and UI; the [GitHub release](https://github.com/coconut971/isdomainok/releases) provides a plugin ZIP with source, lockfile, manifest and skill.
+The repository root has a portable [Agent Plugins](https://agent-plugins.org/specification) `plugin.json`, `mcp.json` and `skills/` package. Its `mcp.json` uses `uv` and the plugin root to start the local stdio server. `uv` must be installed on the host; first run may install locked Python dependencies. The package does not contain a hosted MCP address or a credential. A wheel carries the engine and UI; the [GitHub release](https://github.com/coconut971/doname/releases) provides a plugin ZIP with source, lockfile, manifest and skill.
 
 Host routes differ:
 

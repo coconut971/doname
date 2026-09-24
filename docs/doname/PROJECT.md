@@ -2,7 +2,7 @@
 
 Date: 2026-09-24. Status: DoName 0.1.0 source and local plugin bundle released on GitHub as `doname-v0.1.0`; no public hosted service.
 
-Repository inspected: `coconut971/isdomainok`, public. Baseline: `main` at `80fea7d9a8cb13fc1509286d7c254c47041ba4b1` (IsDomainOK 2.1.0). Keep this history. **DoName V1** names the new product milestone; do not silently downgrade an already published package's version.
+Repository: `coconut971/doname` (renamed from `coconut971/isdomainok`), public. Baseline: `main` at `80fea7d9a8cb13fc1509286d7c254c47041ba4b1` (IsDomainOK 2.1.0). Keep this history. **DoName V1** names the new product milestone; do not silently downgrade an already published package's version.
 
 ## 1. Explicit user decisions
 
@@ -16,7 +16,7 @@ Existing principles to preserve: MIT license, useful local/self-hosted execution
 
 ## 2. Architecture direction
 
-**Keep the existing repository; refound the product without deleting its history.** There is already a separable Python core, MCP server, skill and tests. Keep what is demonstrably correct, replace what is not. A new repository is not presently justified. The remote name has not been changed to `doname`; naming/package availability and links require a separate release check.
+**Keep the existing repository; refound the product without deleting its history.** There is already a separable Python core, MCP server, skill and tests. Keep what is demonstrably correct, replace what is not. A new repository is not presently justified. The public repository was renamed to `coconut971/doname`; its original history and release tags remain intact.
 
 Ship a **plugin**, composed of a reusable MCP engine and a portable naming skill, with thin host-specific packaging. The skill guides how to work; the MCP tools obtain live evidence. A skill alone cannot verify live domain status. The CLI remains a development/diagnostic entry point, not the main product presentation.
 
@@ -152,4 +152,4 @@ A provider-enabled ChatGPT `check_domains` call then returned registered public 
 
 Review of PR #9 also tightened GoDaddy truth handling: `available=true` is only shown as verified when the response marks it definitive; otherwise prices are withheld and the result remains unconfirmed. Money values use the currency's minor unit rather than assuming two decimals. Cards now label RDAP as the primary source for RDAP statuses and show secondary provider evidence separately. The README and changelog describe tested hosts and release limits. A pattern scan of tracked content and Git diffs found no recognizable PAT, OpenAI key or private-key marker; this cannot prove that every possible secret format is absent.
 
-PR #8 and PR #9 were merged into `main`. The published GitHub release `doname-v0.1.0` contains the source, locally runnable plugin bundle, Python wheel and source distribution with SHA-256 checksums. GitHub secret scanning and push protection are enabled. This is not PyPI publication, a production service, or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.
+PR #8 and PR #9 were merged into `main`. The published GitHub release `doname-v0.1.0` contains the source, locally runnable plugin bundle, Python wheel and source distribution with SHA-256 checksums. GitHub secret scanning and push protection are enabled. The repository is not published on PyPI and DoName is not a production service or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.

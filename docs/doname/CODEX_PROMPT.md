@@ -1,5 +1,7 @@
 # Mission Codex — refondre IsDomainOK en DoName
 
+> **Document historique.** Ce prompt a été rédigé quand le dépôt s’appelait `coconut971/isdomainok`. Son nom actuel est [`coconut971/doname`](https://github.com/coconut971/doname). La décision ultérieure du propriétaire de renommer le dépôt remplace l’ancienne consigne de conservation du nom distant ci-dessous.
+
 Tu interviens comme responsable de la conception et de l'implémentation de **DoName**, dans le dépôt `coconut971/isdomainok`. Le nom exact est DoName, D-O-N-A-M-E.
 
 Lis d'abord `AGENTS.md` et `docs/doname/PROJECT.md`. Le second contient la mémoire du projet, les décisions explicites, un audit statique de départ et les références officielles. Ne le confonds pas avec une description de fonctionnalités déjà livrées. Inspecte toi-même le dépôt et vérifie ses constats.
