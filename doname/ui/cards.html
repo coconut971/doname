@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DoName results</title>
+<style>
+  :root{color-scheme:light dark;font:14px/1.45 system-ui,sans-serif;background:#101e29;color:#f5faf7}
+  *{box-sizing:border-box}body{margin:0;padding:16px;max-width:720px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  h1{font-size:18px;letter-spacing:.02em;margin:0}h1 span{color:#78dfb7}p{margin:6px 0;color:#bdd2d2}.controls{display:flex;gap:10px;align-items:center;font-size:12px;color:#bdd2d2}
+  .card{border:1px solid #36525c;border-radius:12px;background:#172a35;padding:13px;margin:9px 0}.card h2{margin:0 0 6px;font-size:16px}.pill{border-radius:999px;padding:2px 8px;font-size:11px;background:#31424b;color:#d9e8e5}
+  .pass{background:#164938;color:#a6f0c6}.unknown{background:#594a23;color:#fbe3a0}.fail{background:#5e3336;color:#fac4c6}
+  .row{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid #30444f}.domain{font-weight:650;overflow-wrap:anywhere}.meta{font-size:11px;color:#bdd2d2;grid-column:1/-1}
+  .price{text-align:right;white-space:nowrap}.reason{font-size:11px;color:#e5c79b}.empty{border:1px dashed #49636b;border-radius:10px;padding:14px;color:#bdd2d2}
+  @media(prefers-color-scheme:light){:root{background:#f6faf8;color:#14252a}.card{background:#fff;border-color:#cbdeda}.row{border-color:#e1ece8}.pill{background:#e6efeb;color:#27423b}.pass{background:#d4f2df;color:#164c30}.unknown{background:#fff0c3;color:#664c00}.fail{background:#ffe2e2;color:#7c252d}p,.controls,.meta,.empty{color:#526d69}.reason{color:#885b1b}}
+</style>
+</head>
+<body>
+<header><h1>Do<span>Name</span></h1><label class="controls"><input id="only" type="checkbox"> Available only</label></header>
+<p id="summary">Waiting for checked names…</p><div id="cards" aria-live="polite"></div>
+<script>
+(() => {
+  const state = {data:null};
+  const summary = document.getElementById('summary');
+  const cards = document.getElementById('cards');
+  const only = document.getElementById('only');
+  const label = {available_at_provider:'Available at provider',unavailable_at_provider:'Unavailable here',registered:'Registered',not_found_in_registration_data:'Not found in RDAP',not_verified:'Not verified',conflict:'Conflicting evidence'};
+  const node = (tag, text, className) => { const el=document.createElement(tag); el.textContent=text; if(className) el.className=className; return el; };
+  const price = p => p ? `${p.amount} ${p.currency} / ${p.period_years} yr${p.period_years===1?'':'s'}` : 'Price unknown';
+  function render(){
+    cards.replaceChildren();
+    if(!state.data) return;
+    summary.textContent=state.data.summary || 'No results';
+    const entries=[...(state.data.candidates||[]),...(state.data.excluded||[])].filter(x=>!only.checked||x.match==='pass');
+    if(!entries.length){cards.append(node('div','No names match this filter.','empty'));return;}
+    entries.forEach(item=>{
+      const card=node('section','','card');
+      const heading=node('h2',item.name+' '); heading.append(node('span',item.match==='pass'?'Matches':item.match==='unknown'?'Unverified':'Excluded','pill '+item.match)); card.append(heading);
+      (item.domains||[]).forEach(d=>{
+        const row=node('div','','row');
+        row.append(node('div',d.domain+' · '+(label[d.status]||d.status),'domain'));
+        row.append(node('div',price(d.registration_price),'price'));
+        const evidence=d.registrability||d.registration;
+        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked',d.renewal_price?'Renewal '+price(d.renewal_price):'Renewal unknown'];
+        row.append(node('div',meta.join(' · '),'meta'));card.append(row);
+      });
+      if(item.reasons?.length) card.append(node('p',item.reasons.join('; '),'reason'));
+      cards.append(card);
+    });
+  }
+  only.addEventListener('change',render);
+  window.addEventListener('message',event=>{
+    if(event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
+    const message=event.data;
+    if(message.id===1 && message.result){window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');return;}
+    if(message.method==='ui/notifications/tool-result'){
+      const payload=message.params?.structuredContent;
+      state.data=payload?.result||payload||null;
+      render();
+    }
+  });
+  window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.1.0'},appCapabilities:{availableDisplayModes:['inline']}}},'*');
+})();
+</script>
+</body>
+</html>
