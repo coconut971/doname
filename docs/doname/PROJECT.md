@@ -1,6 +1,6 @@
 # DoName — project memory and refoundation brief
 
-Date: 2026-09-24. Status: product direction and implementation proposal; not an implemented release.
+Date: 2026-09-24. Status: DoName 0.1.0 release candidate on `implementation/doname-v1`; no public release yet.
 
 Repository inspected: `coconut971/isdomainok`, public. Baseline: `main` at `80fea7d9a8cb13fc1509286d7c254c47041ba4b1` (IsDomainOK 2.1.0). Keep this history. **DoName V1** names the new product milestone; do not silently downgrade an already published package's version.
 
@@ -14,7 +14,7 @@ Design DoName around a small provider abstraction from the start so the engine i
 
 Existing principles to preserve: MIT license, useful local/self-hosted execution, a keyless evidence mode, no telemetry by default, no automatic domain purchase, and no mandatory model API. A public ChatGPT plugin may require a DoName-operated remote MCP service and server-side provider credentials; that hosted path must be cleanly separated from local/self-hosted use and must not make local use depend on the hosted service.
 
-## 2. Architecture decision proposed for implementation
+## 2. Architecture direction
 
 **Keep the existing repository; refound the product without deleting its history.** There is already a separable Python core, MCP server, skill and tests. Keep what is demonstrably correct, replace what is not. A new repository is not presently justified. The remote name has not been changed to `doname`; naming/package availability and links require a separate release check.
 
@@ -106,3 +106,50 @@ Recheck these during implementation; formats and platform permissions can change
 2026-09-24 — Architecture recommendation: keep repository/history; shared MCP engine plus skill and thin host packaging; local/self-hosted support plus a separate remote path for public ChatGPT integration; retain MIT; prioritize evidence correctness over exaggerated availability claims. Language and detailed module structure remain open to a justified implementation decision.
 
 2026-09-24 — V1 refinement after inspecting the installed Namecheap plugin: DoName V1 should already use real read-only market data for current domain availability and pricing, while remaining non-transactional. Design a provider-neutral interface, select at least one viable live provider, show registration and renewal price separately when available, and support compact in-chat UI on hosts that implement MCP Apps/UI resources. Purchase, commissions and commercial provider economics remain outside V1.
+
+## 10. Implementation record
+
+2026-09-24 — First vertical slice committed as `05d4abe` on `implementation/doname-v1`. A new Python `doname` package replaces the old public package identity without deleting Git history. The engine validates registrable domains with an offline bundled public suffix list and IDNA, caps a call at 25 domains, separates RDAP registration, provider registrability and optional DNS observations, and resolves statuses without converting NXDOMAIN/RDAP 404/provider refusal into registration or availability. The provider protocol supports batch reads. GoDaddy v3 is the first adapter because its documented read-only batch endpoint accepts 1–25 domains and returns indicative registration/renewal prices. It uses `GODADDY_PAT` only on the server side. No credential was present for a live GoDaddy call.
+
+The naming flow groups extensions per candidate, applies all/any plus mandatory extension and budget constraints, and can hide nonmatching names. MCP SDK v2 exposes three tools over stdio and loopback Streamable HTTP, with a compact MCP Apps UI resource for `screen_names`; the structured response remains complete. Twenty-five new automated tests passed. An SDK MCP in-process exchange, a real loopback HTTP MCP exchange and a live keyless RDAP check of `example.com` succeeded. That RDAP check returned `registered`; it did not test provider availability or price. No ChatGPT or Claude UI host was tested yet.
+
+Current limits: GoDaddy prices are indicative and scoped to its account/market context; renewal may be omitted. `.fr` coverage and actual provider credentials remain unverified. The keyless path confirms registrations or reports absence of an RDAP object, never registrability. No production endpoint, public plugin submission or package publication exists. Hosting requires explicit operations work, an authentication and abuse-control boundary, and a privacy review of proxy/application logs.
+
+### Provider choice rechecked against official documentation
+
+| Source | Documented access and signal | Decision |
+| --- | --- | --- |
+| [GoDaddy Domains v3](https://developer.godaddy.com/en/docs/references/rest/domains/v3/discovery) | Personal Access Token; read-only `POST /check-availability` checks 1–25 domains and returns availability plus indicative registration and renewal price per term; 60 requests/minute per credential. | First V1 adapter. One provider batch per DoName call; `ACCURACY`; read scope only. The code has mock contract tests; real token call remains untested. |
+| [Namecheap API](https://www.namecheap.com/support/api/intro/) | Account API with IPv4 allowlist and XML parameters; separate account/access prerequisites. | Product reference, not the first adapter. Avoid coupling the engine to this API. |
+| [Spaceship API](https://docs.spaceship.dev/) | Read-scoped availability batch up to 20; its reviewed availability response documents `premiumPricing`, not complete standard registration/renewal prices in that response. | Candidate for another adapter after a full pricing contract review. |
+| [Porkbun API](https://porkbun.com/api/json/v3/documentation) | Official docs advertise availability/pricing checks one at a time or 25 per call and a sandbox. | Strong candidate for the next adapter; exact access and response contracts still need validation. |
+
+No partnership or shared credential is assumed. The first adapter is chosen for a precise read-only contract and complete indicative price fields, not for a claim that GoDaddy is universally cheapest or covers every requested TLD.
+
+### Packaging and verification after the first slice
+
+The repository root now has portable Agent Plugins `plugin.json`/`mcp.json`, a DoName skill, and a locked `uv` dependency set. Legacy IsDomainOK source and stale descriptors were removed from this branch. The plugin bundle contains source, UI, manifest, skill and lockfile; the wheel contains the Python engine and UI. The plugin bundle was extracted into a clean directory and ran under Python 3.10; its MCP stdio command completed tool discovery and an offline naming call. An isolated wheel install imported the server and UI. Both manifests passed the published Agent Plugins JSON Schemas. A JavaScript host-bridge smoke test rendered synthetic cards and completed the MCP Apps initialization handshake. These are development tests, not ChatGPT or Claude host validation.
+
+Thirty-three automated tests pass on local Python 3.10 and 3.13. The final synthetic 12-name/24-domain benchmark ran with 24 simulated RDAP calls and one simulated provider batch in 24.72 ms locally, producing 16,917 bytes of JSON. This excludes network and model latency and is not a live performance promise. Codex CLI 0.155.0-alpha.16.4 called `capabilities` through an ephemeral MCP config; Claude Code 2.1.281 called the same tool through a temporary MCP config. Both reported no configured provider. No global MCP config was changed. The available-only option and card filter now hide unavailable optional extensions; text fallback includes both evidence sources, source times and prices. IDE, ChatGPT and visual host rendering remain untested.
+
+### V1 hardening after review of PR #9
+
+2026-09-24 — The CI matrix now checks Python 3.10/3.13 on Linux and Python 3.13 on Windows using the locked dependency set. The Linux packaging lane validates `plugin.json` and `mcp.json` against hash-pinned local copies of the official Agent Plugins 1.0.0 schemas, runs the MCP Apps lifecycle smoke, and builds the wheel and sdist. Linux and Windows 3.13 build the plugin ZIP, extract it into a temporary directory and start the stdio server from its `mcp.json` command; tool discovery, offline calls and UI resource loading are checked without provider credentials or search telemetry. The View now responds to `ui/resource-teardown`, drops listeners/state and reports size changes; its simulated host test verifies teardown acknowledgement and cleanup. Thirty-six Python tests pass locally after adding auth-error and manual-probe privacy checks.
+
+The separate private GoDaddy probe generates disposable synthetic `.com`/`.fr` candidates and uses public `example.com`/`nic.fr` registration controls. It emits redacted status, freshness and price summaries only; it has not been run with a PAT. The 36 Python tests pass locally on 3.10 and 3.13. A private ChatGPT developer-mode tunnel runbook follows current OpenAI documentation; no tunnel, ChatGPT connection or visual host test has been performed. Keep PR #9 in draft until those external checks are done.
+
+### Private live validation
+
+2026-09-24 — The manual GoDaddy probe ran locally with a temporary PAT supplied only through the process environment. It confirmed registered controls and available synthetic candidates under both `.com` and `.fr`, including definitive provider availability, indicative registration prices and renewal prices for the tested terms. There were no observed provider errors or rate limits. The probe's redacted summary reported `live_criteria_met=true`; the token, generated names and raw provider responses were not committed. This proves the tested GoDaddy contract and TLD coverage at that time, not universal coverage or future availability.
+
+An official private Secure MCP Tunnel connected the local stdio server to a ChatGPT developer-mode MCP App. In a real ChatGPT conversation, offline synthetic `screen_names` results rendered DoName cards and the **Available only** filter worked. A keyless live RDAP check returned `registered` for public `.com` and `.fr` controls, and `not_found_in_registration_data` for synthetic RDAP 404 cases with source and check time. A second card View displayed that cautious status and unknown prices. The text/structured fallback remained useful.
+
+A provider-enabled ChatGPT `check_domains` call then returned registered public controls and available synthetic `.com`/`.fr` candidates from GoDaddy, with registration and renewal prices, currency, source time and no reported errors. A real `screen_names` card showed both extensions as provider-available with those indicative prices and renewal details; the candidate passed `match="all"`. This confirms the tested provider-to-ChatGPT path. It does not establish universal TLD coverage, future availability, checkout pricing or public plugin readiness. No private candidates, token or raw provider response entered Git. The private App is not a public plugin or production deployment, and PR #9 remains draft pending final review.
+
+### Release review and publication boundary
+
+2026-09-24 — The user chose GoDaddy as the sole V1 provider and reported that GitHub Actions cannot be the release gate. The local `scripts/release_check.py` checks the lockfile, Python 3.10/3.13 tests, Agent Plugins manifests, MCP Apps lifecycle, extracted plugin startup/tool discovery and Python builds. The plugin builder now has an explicit public-file list; a separate artifact audit rejects unexpected, untracked or secret-shaped files. The current release candidate passes 38 Python tests on each version and the full local gate on Windows. No live provider call is part of that gate.
+
+Review of PR #9 also tightened GoDaddy truth handling: `available=true` is only shown as verified when the response marks it definitive; otherwise prices are withheld and the result remains unconfirmed. Money values use the currency's minor unit rather than assuming two decimals. Cards now label RDAP as the primary source for RDAP statuses and show secondary provider evidence separately. The README and changelog describe tested hosts and release limits. A pattern scan of tracked content and Git diffs found no recognizable PAT, OpenAI key or private-key marker; this cannot prove that every possible secret format is absent.
+
+The public release target is source plus a locally runnable plugin bundle on GitHub, tagged `doname-v0.1.0`. It is not PyPI publication, a production service, or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.

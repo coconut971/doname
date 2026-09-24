@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "isdomainok": {
-      "type": "stdio",
-      "command": "isdomainok-mcp",
-      "args": []
-    }
-  }
-}

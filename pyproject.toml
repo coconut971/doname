@@ -1,45 +1,36 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "isdomainok"
-version = "2.1.0"
-description = "Local-first domain intelligence for humans and AI agents: DNS, RDAP, registrar consensus, pricing and MCP"
+name = "doname"
+version = "0.1.0"
+description = "Private, evidence-first domain research for AI naming workflows"
 readme = "README.md"
-requires-python = ">=3.9"
-license = {text = "MIT"}
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{name = "coconut971"}]
-keywords = ["domain", "dns", "rdap", "cli", "domain-name", "availability", "mcp", "ai-agent", "naming"]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Operating System :: OS Independent",
-  "Topic :: Internet :: Name Service (DNS)",
-  "Topic :: Utilities",
+dependencies = [
+  "dnspython>=2.6,<3",
+  "idna>=3.7,<4",
+  "tldextract>=5.1,<6",
+  "mcp>=2,<3",
 ]
-dependencies = ["dnspython>=2.6"]
 
-[project.optional-dependencies]
-mcp = ["mcp>=2,<3; python_version >= '3.10'"]
+[dependency-groups]
+dev = ["jsonschema>=4.25,<5"]
 
 [project.scripts]
-isdomainok = "okitsok.cli:main"
-okitsok = "okitsok.cli:main"
-isdomainok-mcp = "okitsok.mcp_server:main"
+doname = "doname.cli:main"
+doname-mcp = "doname.mcp_server:main"
 
 [project.urls]
-Homepage = "https://github.com/coconut971/okitsok"
-Repository = "https://github.com/coconut971/okitsok"
-Issues = "https://github.com/coconut971/okitsok/issues"
+Repository = "https://github.com/coconut971/isdomainok"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["okitsok*"]
+include = ["doname*"]
+
+[tool.setuptools.package-data]
+doname = ["ui/*.html"]
