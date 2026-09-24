@@ -13,6 +13,7 @@ import tldextract
 MAX_NAMES = 12
 MAX_TLDS = 5
 MAX_DOMAINS = 25
+DEFAULT_TLDS = ("com", "fr", "ai", "io", "app")
 _LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 
@@ -71,7 +72,7 @@ def base_name(value: str) -> str:
 
 
 def tlds(values: list[str] | None) -> list[str]:
-    requested = values if values is not None else ["com", "fr"]
+    requested = values if values is not None else list(DEFAULT_TLDS)
     if not isinstance(requested, list) or not 1 <= len(requested) <= MAX_TLDS:
         raise InputError(f"Choose 1 to {MAX_TLDS} extensions.")
     result = []

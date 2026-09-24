@@ -50,10 +50,12 @@ def _aggregate(outcomes: list[str], mode: str) -> str:
     return "pass" if "pass" in outcomes else "unknown" if "unknown" in outcomes else "fail"
 
 
-def screen_names(names: list[str], extensions: list[str] | None = None, *, match: str = "all",
+def screen_names(names: list[str], extensions: list[str] | None = None, *, match: str | None = None,
                  required_extensions: list[str] | None = None, max_registration_price: float | None = None,
                  currency: str | None = None, available_only: bool = False, offline: bool = False,
                  provider: AvailabilityProvider | None = None) -> dict:
+    if match is None:
+        match = "any" if extensions is None else "all"
     if match not in {"all", "any"}:
         raise InputError("match must be 'all' or 'any'.")
     suffixes = tlds(extensions)

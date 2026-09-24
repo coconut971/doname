@@ -4,37 +4,301 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DoName results</title>
 <style>
-  :root{color-scheme:light dark;font:14px/1.45 system-ui,sans-serif;background:#101e29;color:#f5faf7}
-  *{box-sizing:border-box}body{margin:0;padding:16px;max-width:720px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
-  h1{font-size:18px;letter-spacing:.02em;margin:0}h1 span{color:#78dfb7}p{margin:6px 0;color:#bdd2d2}.controls{display:flex;gap:10px;align-items:center;font-size:12px;color:#bdd2d2}
-  .card{border:1px solid #36525c;border-radius:12px;background:#172a35;padding:13px;margin:9px 0}.card h2{margin:0 0 6px;font-size:16px}.pill{border-radius:999px;padding:2px 8px;font-size:11px;background:#31424b;color:#d9e8e5}
-  .pass{background:#164938;color:#a6f0c6}.unknown{background:#594a23;color:#fbe3a0}.fail{background:#5e3336;color:#fac4c6}
-  .row{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid #30444f}.domain{font-weight:650;overflow-wrap:anywhere}.meta{font-size:11px;color:#bdd2d2;grid-column:1/-1}
-  .price{text-align:right;white-space:nowrap}.reason{font-size:11px;color:#e5c79b}.empty{border:1px dashed #49636b;border-radius:10px;padding:14px;color:#bdd2d2}
-  @media(prefers-color-scheme:light){:root{background:#f6faf8;color:#14252a}.card{background:#fff;border-color:#cbdeda}.row{border-color:#e1ece8}.pill{background:#e6efeb;color:#27423b}.pass{background:#d4f2df;color:#164c30}.unknown{background:#fff0c3;color:#664c00}.fail{background:#ffe2e2;color:#7c252d}p,.controls,.meta,.empty{color:#526d69}.reason{color:#885b1b}}
+  :root{
+    color-scheme:light dark;
+    font:14px/1.45 var(--font-sans,system-ui,sans-serif);
+    --page:var(--color-background-primary,light-dark(#fff,#171717));
+    --surface:var(--color-background-secondary,light-dark(#fff,#202020));
+    --surface-soft:light-dark(#f7f8f7,#252725);
+    --text:var(--color-text-primary,light-dark(#202522,#f1f3f1));
+    --muted:var(--color-text-secondary,light-dark(#69716d,#a3aaa5));
+    --border:var(--color-border-primary,light-dark(#e1e5e2,#383d39));
+    --accent:light-dark(#176b58,#70c6a4);
+    --on-accent:light-dark(#fff,#10251c);
+    --good:light-dark(#e8f3ec,#203b30);
+    --good-text:light-dark(#286247,#a8e2bd);
+    --caution:light-dark(#f6f0df,#3d3522);
+    --caution-text:light-dark(#775a17,#efd58b);
+    --bad:light-dark(#f7eae9,#412827);
+    --bad-text:light-dark(#8c3b36,#f0b9b4);
+    background:var(--page);color:var(--text)
+  }
+  :root[data-theme="light"]{color-scheme:light}
+  :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;padding:12px 14px 16px;max-width:960px;font-size:13px}
+  .quick-check{margin:0 0 12px}
+  .quick-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .quick-row{display:flex;align-items:center;gap:0;min-height:46px;border:1px solid var(--border);border-radius:13px;background:var(--surface);transition:border-color .16s ease,box-shadow .16s ease}
+  .quick-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent)}
+  .quick-icon{width:17px;height:17px;flex:none;margin-left:13px;color:var(--muted);pointer-events:none}
+  .quick-input{flex:1;min-width:0;height:44px;border:0;border-radius:13px;padding:0 11px;background:transparent;color:var(--text);font:inherit;font-size:13px;outline:none}
+  .quick-input::placeholder{color:var(--muted);opacity:.9}
+  .quick-submit{display:grid;place-items:center;width:36px;height:36px;flex:none;margin:4px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);cursor:pointer;transition:filter .16s ease,opacity .16s ease}
+  .quick-submit:hover:not(:disabled){filter:brightness(.94)}
+  .quick-submit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .quick-submit:disabled{opacity:.6;cursor:wait}
+  .quick-status{margin:6px 0 0;color:var(--muted);font-size:11px}
+  .quick-result{display:grid;gap:6px;margin-top:8px}
+  #cards{display:grid;gap:8px}
+  .candidate{min-width:0;border:1px solid var(--border);border-radius:15px;background:var(--surface);padding:13px;box-shadow:0 1px 2px #00000008}
+  .candidate-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .candidate-title{min-width:0}
+  .candidate h2{margin:0;font-size:16px;line-height:1.3;font-weight:650;letter-spacing:-.02em;overflow-wrap:anywhere}
+  .availability{display:inline-flex;align-items:center;gap:6px;flex:none;border-radius:999px;padding:4px 8px;background:var(--good);color:var(--good-text);font-size:10px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}
+  .availability::before{width:6px;height:6px;border-radius:50%;background:currentColor;content:""}
+  .availability.unknown{background:var(--caution);color:var(--caution-text)}
+  .availability.fail{background:var(--bad);color:var(--bad-text)}
+  .domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:7px}
+  .domain-card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;border:1px solid var(--border);border-radius:11px;background:var(--surface-soft);padding:9px 11px}
+  .domain-left{display:flex;align-items:center;gap:8px;min-width:0}
+  .status-dot{width:6px;height:6px;flex:none;border-radius:50%;background:var(--good-text)}
+  .domain-card.unknown .status-dot{background:var(--caution-text)}
+  .domain-card.fail .status-dot{background:var(--bad-text)}
+  .tld{font-size:12px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+  .domain-status{color:var(--muted);font-size:10px;white-space:nowrap}
+  .price-group{display:flex;align-items:baseline;justify-content:flex-end;gap:5px;min-width:0;text-align:right;font-variant-numeric:tabular-nums}
+  .price{font-size:14px;font-weight:650;letter-spacing:-.02em;overflow-wrap:anywhere}
+  .period{color:var(--muted);font-size:10px;white-space:nowrap}
+  .price-missing{color:var(--muted);font-size:11px}
+  .candidate-meta{display:flex;align-items:center;gap:6px;margin-top:9px;color:var(--muted);font-size:10px}
+  .provider-name{display:inline-flex;align-items:center;gap:6px}
+  .provider-name::before{width:6px;height:6px;border-radius:50%;background:var(--accent);content:""}
+  .meta-dot{width:3px;height:3px;border-radius:50%;background:currentColor}
+  .more{margin-top:8px;color:var(--muted);font-size:10px}
+  .more summary{width:max-content;max-width:100%;cursor:pointer;list-style:none}
+  .more summary::-webkit-details-marker{display:none}
+  .more summary::before{content:"+";display:inline-block;width:13px;color:var(--accent);font-weight:700}
+  .more[open] summary::before{content:"−"}
+  .more ul{display:grid;gap:5px;margin:7px 0 0;padding:0;list-style:none}
+  .more li{padding:7px 9px;border-radius:8px;background:var(--surface-soft);overflow-wrap:anywhere}
+  .empty{border:1px dashed var(--border);border-radius:11px;padding:14px;color:var(--muted);font-size:12px}
+  :root[data-display-mode="fullscreen"] body{max-width:none;padding:clamp(18px,4vw,40px)}
+  @media(max-width:420px){body{padding:10px}.candidate{padding:11px}.candidate-header{gap:7px}.candidate h2{font-size:15px}.availability{padding:4px 7px}.domain-card{padding:9px 10px}}
+  @media(prefers-reduced-motion:no-preference){.candidate,.domain-card{transition:border-color .16s ease,box-shadow .16s ease}.domain-card:hover{border-color:color-mix(in srgb,var(--accent) 36%,var(--border));box-shadow:0 2px 10px #0000000a}}
 </style>
 </head>
 <body>
-<header><h1>Do<span>Name</span></h1><label class="controls"><input id="only" type="checkbox"> Available only</label></header>
-<p id="summary">Waiting for checked names…</p><div id="cards" aria-live="polite"></div>
+<form id="quick-check" class="quick-check" hidden>
+  <label id="quick-label" class="quick-label" for="domain-query">Rechercher un nom ou un domaine</label>
+  <div class="quick-row">
+    <svg class="quick-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+    <input id="domain-query" class="quick-input" type="text" inputmode="search" maxlength="253" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Nom de projet ou domaine · ex. Lune / Lune.ai" aria-label="Nom de projet ou domaine">
+    <button id="quick-submit" class="quick-submit" type="submit" aria-label="Vérifier le domaine">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+  </div>
+  <p id="quick-status" class="quick-status" role="status" aria-live="polite" hidden></p>
+  <div id="quick-result" class="quick-result" aria-live="polite"></div>
+</form>
+<div id="cards" aria-live="polite"></div>
 <script>
 (() => {
-  const state = {data:null};
+  const state = {data:null, context:{}, hostCapabilities:{}};
   let active = true;
   let initialized = false;
   let lastSize = '';
-  const summary = document.getElementById('summary');
+  let nextRequestId = 2;
+  const pendingRequests = new Map();
   const cards = document.getElementById('cards');
-  const only = document.getElementById('only');
-  const label = {available_at_provider:'Available at provider',unavailable_at_provider:'Unavailable here',registered:'Registered',not_found_in_registration_data:'Not found in RDAP',not_verified:'Not verified',conflict:'Conflicting evidence'};
-  const node = (tag, text, className) => { const el=document.createElement(tag); el.textContent=text; if(className) el.className=className; return el; };
-  const price = p => p ? `${p.amount} ${p.currency} / ${p.period_years} yr${p.period_years===1?'':'s'}` : 'Price unknown';
+  const quickCheck = document.getElementById('quick-check');
+  const domainQuery = document.getElementById('domain-query');
+  const quickSubmit = document.getElementById('quick-submit');
+  const quickStatus = document.getElementById('quick-status');
+  const quickResult = document.getElementById('quick-result');
+  const defaultExtensions=['com','fr','ai','io','app'];
+  const node = (tag, text, className) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=text; if(className) el.className=className; return el; };
+  const locale = () => state.context.locale || document.documentElement.lang || 'en-US';
+  const french = () => locale().toLowerCase().startsWith('fr');
+  const copy = () => french() ? {
+    noResults:'Aucun nom ne correspond aux critères.',
+    availableCount:(n,total)=>`${n}/${total} dispo`,
+    noneAvailable:'Aucun disponible',availabilityUnknown:'À vérifier',
+    available:'Disponible',unavailable:'Indisponible',
+    registered:'Enregistré',rdapMissing:'Absent des données RDAP',notVerified:'Non vérifié',conflict:'Preuves contradictoires',
+    for:'pour',year:'an',years:'ans',priceUnknown:'Prix indisponible',
+    renewal:'Renouvellement',renewalUnknown:'Renouvellement non fourni',
+    details:'Sources & renouvellement',multipleProviders:'Plusieurs fournisseurs',
+    rdap:'RDAP',provider:'Fournisseur',dns:'DNS',
+    noSource:'Aucune source vérifiable',
+    searching:'Recherche en cours…',emptyDomain:'Saisissez un nom ou un domaine.',
+    searchFailed:'Recherche impossible depuis cet hôte. Continuez dans le chat.',
+    searchNoAvailable:(suffixes,unverified)=>unverified?`Aucun domaine confirmé disponible · ${suffixes} · certaines extensions n’ont pas pu être vérifiées.`:`Aucun domaine disponible · ${suffixes}`,
+    label:'Rechercher un nom ou un domaine',placeholder:'Nom de projet ou domaine · ex. Lune / Lune.ai',searchAction:'Rechercher',
+  } : {
+    noResults:'No names match these criteria.',
+    availableCount:(n,total)=>`${n}/${total} available`,
+    noneAvailable:'None available',availabilityUnknown:'Needs checking',
+    available:'Available',unavailable:'Unavailable',
+    registered:'Registered',rdapMissing:'Not found in RDAP',notVerified:'Not verified',conflict:'Conflicting evidence',
+    for:'for',year:'year',years:'years',priceUnknown:'Price unavailable',
+    renewal:'Renewal',renewalUnknown:'Renewal price not provided',
+    details:'Sources & renewal',multipleProviders:'Multiple providers',
+    rdap:'RDAP',provider:'Provider',dns:'DNS',
+    noSource:'No verifiable source',
+    searching:'Searching…',emptyDomain:'Enter a name or domain.',
+    searchFailed:'This host could not run the search. Continue in chat.',
+    searchNoAvailable:(suffixes,unverified)=>unverified?`No confirmed available domain · ${suffixes} · some extensions could not be verified.`:`None available · ${suffixes}`,
+    label:'Search a name or domain',placeholder:'Project name or domain · e.g. Luna / Luna.ai',searchAction:'Search',
+  };
+  const statusText = status => ({
+    available_at_provider:copy().available, unavailable_at_provider:copy().unavailable,
+    registered:copy().registered, not_found_in_registration_data:copy().rdapMissing,
+    not_verified:copy().notVerified, conflict:copy().conflict
+  }[status] || copy().notVerified);
+  function applyHostContext(context={}){
+    if(!context||typeof context!=='object') return;
+    state.context={...state.context,...context};
+    const root=document.documentElement;
+    if(state.context.theme==='light'||state.context.theme==='dark') root.dataset.theme=state.context.theme;
+    if(typeof state.context.locale==='string'&&state.context.locale){root.lang=state.context.locale;}
+    if(typeof state.context.platform==='string') root.dataset.platform=state.context.platform;
+    if(typeof state.context.displayMode==='string') root.dataset.displayMode=state.context.displayMode;
+    const variables=state.context.styles?.variables;
+    const allowed=['--color-background-primary','--color-background-secondary','--color-text-primary','--color-text-secondary','--color-border-primary','--font-sans'];
+    if(variables&&typeof variables==='object') for(const key of allowed){
+      const value=variables[key];
+      if(typeof value==='string'&&value.length<200) root.style?.setProperty?.(key,value);
+    }
+  }
+  function money(value){
+    const amount=Number(value?.amount), currency=value?.currency;
+    if(!Number.isFinite(amount)||typeof currency!=='string'||!/^[A-Za-z]{3}$/.test(currency))
+      return value?`${value.amount} ${value.currency}`:copy().priceUnknown;
+    try{return new Intl.NumberFormat(locale(),{style:'currency',currency:currency.toUpperCase(),currencyDisplay:'code'}).format(amount);}
+    catch{return `${value.amount} ${currency.toUpperCase()}`;}
+  }
+  function period(years){
+    const n=Number(years)||1;
+    try{return `${new Intl.NumberFormat(locale()).format(n)} ${n===1?copy().year:copy().years}`;}
+    catch{return `${n} ${n===1?copy().year:copy().years}`;}
+  }
+  function formatDate(iso){
+    if(!iso) return copy().notVerified;
+    const date=new Date(iso);
+    if(Number.isNaN(date.getTime())) return iso;
+    try{return new Intl.DateTimeFormat(locale(),{dateStyle:'medium',timeStyle:'medium',timeZone:state.context.timeZone}).format(date);}
+    catch{return date.toISOString();}
+  }
+  function availability(domains){
+    const available=domains.filter(domain=>domain.status==='available_at_provider').length;
+    const unavailable=domains.filter(domain=>['registered','unavailable_at_provider'].includes(domain.status)).length;
+    if(available) return {text:copy().availableCount(available,domains.length),className:'pass'};
+    if(domains.length&&unavailable===domains.length) return {text:copy().noneAvailable,className:'fail'};
+    return {text:copy().availabilityUnknown,className:'unknown'};
+  }
+  function renderDetails(domains, reasons, card){
+    const hasData=domains.some(domain=>domain.registration_price||domain.renewal_price||domain.registration||domain.registrability||domain.dns)||reasons.length;
+    if(!hasData) return;
+    const details=node('details',undefined,'more');
+    details.append(node('summary',copy().details));
+    const list=node('ul');
+    domains.forEach(domain=>{
+      const parts=[domain.domain];
+      if(domain.renewal_price) parts.push(`${copy().renewal} · ${money(domain.renewal_price)} / ${period(domain.renewal_price.period_years)}`);
+      [['registration',domain.registration],['registrability',domain.registrability],['dns',domain.dns]].forEach(([key,evidence])=>{
+        if(!evidence) return;
+        const category=key==='registration'?copy().rdap:key==='registrability'?copy().provider:copy().dns;
+        const source=evidence.source?`${category} · ${evidence.source}`:category;
+        parts.push(`${source} · ${evidence.status||copy().notVerified} · ${formatDate(evidence.checked_at)}`);
+      });
+      list.append(node('li',parts.join(' · ')));
+    });
+    reasons.forEach(reason=>list.append(node('li',reason)));
+    details.append(list);card.append(details);
+  }
+  function renderMeta(domains, card){
+    const providers=new Set(domains.map(domain=>domain.registrability?.source||domain.registration_price?.provider||domain.renewal_price?.provider).filter(Boolean));
+    const provider=providers.size===1?[...providers][0]:providers.size>1?copy().multipleProviders:copy().noSource;
+    const footer=node('div',undefined,'candidate-meta');
+    footer.append(node('span',provider,'provider-name'));
+    card.append(footer);
+  }
+  function callServerTool(name, args){
+    if(!initialized||!state.hostCapabilities.serverTools) return Promise.reject(new Error('Tool calls are not supported by this host.'));
+    const id=nextRequestId++;
+    return new Promise((resolve,reject)=>{
+      const timer=window.setTimeout(()=>{
+        pendingRequests.delete(id);
+        reject(new Error('Tool call timed out.'));
+      },120000);
+      pendingRequests.set(id,{resolve,reject,timer});
+      try{window.parent.postMessage({jsonrpc:'2.0',id,method:'tools/call',params:{name,arguments:args}},'*');}
+      catch(error){pendingRequests.delete(id);window.clearTimeout(timer);reject(error);}
+    });
+  }
+  function setQuickStatus(message){
+    quickStatus.textContent=message;
+    quickStatus.hidden=!message;
+  }
+  async function onQuickSearch(event){
+    event.preventDefault();
+    if(!active||quickSubmit.disabled) return;
+    const query=String(domainQuery.value||'').trim();
+    if(!query){setQuickStatus(copy().emptyDomain);domainQuery.focus();return;}
+    quickSubmit.disabled=true;
+    domainQuery.disabled=true;
+    quickResult.replaceChildren();
+    setQuickStatus(copy().searching);
+    try{
+      const exact=query.includes('.');
+      const response=exact
+        ? await callServerTool('check_domains',{domains:[query]})
+        : await callServerTool('screen_names',{names:[query],extensions:defaultExtensions,match:'any',available_only:true});
+      if(response?.isError){setQuickStatus(copy().searchFailed);return;}
+      const data=response?.structuredContent;
+      if(exact){
+        const report=data?.domains?.[0];
+        if(!report){setQuickStatus(copy().searchFailed);return;}
+        const result=node('section',undefined,'quick-domain-result');
+        result.append(renderDomain(report,true));
+        renderMeta([report],result);
+        renderDetails([report],[],result);
+        quickResult.replaceChildren(result);
+      }else{
+        const candidates=data?.candidates;
+        if(!Array.isArray(candidates)){setQuickStatus(copy().searchFailed);return;}
+        if(candidates.length){
+          const results=node('div',undefined,'quick-results');
+          candidates.forEach(item=>results.append(renderCandidate(item)));
+          quickResult.replaceChildren(results);
+        }else{
+          const suffixes=defaultExtensions.map(extension=>`.${extension}`).join(' · ');
+          const unverified=Number(data?.excluded_summary?.unverified||0);
+          quickResult.replaceChildren(node('div',copy().searchNoAvailable(suffixes,unverified),'empty'));
+        }
+      }
+      setQuickStatus('');
+      notifySize();
+    }catch{
+      if(active) setQuickStatus(copy().searchFailed);
+    }finally{
+      if(active){quickSubmit.disabled=false;domainQuery.disabled=false;}
+    }
+  }
+  function renderDomain(domain, showStatus=false){
+    const statusClass=domain.status==='available_at_provider'?'pass':domain.status==='registered'||domain.status==='unavailable_at_provider'?'fail':'unknown';
+    const card=node('article',undefined,`domain-card ${statusClass}`);
+    card.title=domain.domain;
+    card.setAttribute?.('aria-label',`${domain.domain} — ${statusText(domain.status)}`);
+    const match=domain.domain.match(/\.([^.]+)$/);
+    const tld=node('span',match?`.${match[1]}`:'Domain','tld');
+    const left=node('div',undefined,'domain-left');
+    left.append(node('span',undefined,'status-dot'),tld);
+    if(showStatus) left.append(node('span',statusText(domain.status),'domain-status'));
+    const price=node('div',undefined,'price-group');
+    if(domain.registration_price){
+      price.append(node('strong',money(domain.registration_price),'price'));
+      price.append(node('span',`/ ${period(domain.registration_price.period_years)}`,'period'));
+    }else price.append(node('span',copy().priceUnknown,'price-missing'));
+    card.append(left,price);
+    return card;
+  }
   function notifySize(){
     if(!active||!initialized) return;
     const bounds=document.body?.getBoundingClientRect?.();
     if(!bounds) return;
-    const width=Math.ceil(bounds.width),height=Math.ceil(bounds.height);
-    const key=`${width}x${height}`;
+    const width=Math.ceil(bounds.width),height=Math.ceil(bounds.height),key=`${width}x${height}`;
     if(width>0&&height>0&&key!==lastSize){
       lastSize=key;
       window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{width,height}},'*');
@@ -43,63 +307,76 @@
   function render(){
     cards.replaceChildren();
     if(!state.data) return;
-    summary.textContent=state.data.summary || 'No results';
-    const entries=[...(state.data.candidates||[]),...(state.data.excluded||[])].filter(x=>!only.checked||x.match==='pass');
-    if(!entries.length){cards.append(node('div','No names match this filter.','empty'));return;}
-    entries.forEach(item=>{
-      const card=node('section','','card');
-      const heading=node('h2',item.name+' '); heading.append(node('span',item.match==='pass'?'Matches':item.match==='unknown'?'Unverified':'Excluded','pill '+item.match)); card.append(heading);
-      (item.domains||[]).filter(d=>!only.checked||d.status==='available_at_provider').forEach(d=>{
-        const row=node('div','','row');
-        row.append(node('div',d.domain+' · '+(label[d.status]||d.status),'domain'));
-        row.append(node('div',price(d.registration_price),'price'));
-        const rdapStatus=d.status==='registered'||d.status==='not_found_in_registration_data';
-        const evidence=rdapStatus?d.registration:(d.registrability||d.registration);
-        const secondary=rdapStatus?d.registrability:(d.status==='conflict'?d.registration:null);
-        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked'];
-        if(secondary) meta.push(`${secondary.source}: ${secondary.status}`);
-        meta.push(d.renewal_price?'Indicative renewal '+price(d.renewal_price):'Renewal unknown');
-        row.append(node('div',meta.join(' · '),'meta'));card.append(row);
-      });
-      if(item.reasons?.length&&!only.checked) card.append(node('p',item.reasons.join('; '),'reason'));
-      cards.append(card);
-    });
+    const entries=state.data.candidates||[];
+    if(!entries.length){cards.append(node('div',copy().noResults,'empty'));notifySize();return;}
+    entries.forEach(item=>cards.append(renderCandidate(item)));
     notifySize();
   }
-  const onFilterChange=()=>{if(active) render();};
-  only.addEventListener('change',onFilterChange);
+  function renderCandidate(item){
+      const card=node('section',undefined,'candidate');
+      const allDomains=item.domains||[];
+      const candidateHead=node('div',undefined,'candidate-header');
+      const title=node('div',undefined,'candidate-title');
+      title.append(node('h2',item.name));
+      const badge=availability(allDomains);
+      candidateHead.append(title,node('span',badge.text,`availability ${badge.className}`));
+      card.append(candidateHead);
+      const grid=node('div',undefined,'domains');
+      allDomains.forEach(domain=>grid.append(renderDomain(domain)));
+      if(grid.children.length) card.append(grid);
+      renderMeta(allDomains,card);
+      renderDetails(allDomains,[],card);
+      return card;
+  }
+  function localizeQuickCheck(){
+    const labels=copy();
+    document.getElementById('quick-label').textContent=labels.label;
+    domainQuery.placeholder=labels.placeholder;
+    domainQuery.setAttribute?.('aria-label',labels.label);
+    quickSubmit.setAttribute?.('aria-label',labels.searchAction);
+  }
+  quickCheck.addEventListener('submit',onQuickSearch);
   const sizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(notifySize):null;
   if(sizeObserver) sizeObserver.observe(document.body);
   function onMessage(event){
-    if(!active) return;
-    if(event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
+    if(!active||event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
     const message=event.data;
-    if(message.method==='ui/resource-teardown'){
-      active=false;
-      state.data=null;
-      sizeObserver?.disconnect();
-      only.removeEventListener('change',onFilterChange);
-      window.removeEventListener('message',onMessage);
-      cards.replaceChildren();
-      summary.textContent='';
-      if(Object.prototype.hasOwnProperty.call(message,'id'))
-        window.parent.postMessage({jsonrpc:'2.0',id:message.id,result:{}},'*');
+    const pending=pendingRequests.get(message.id);
+    if(pending){
+      pendingRequests.delete(message.id);
+      window.clearTimeout(pending.timer);
+      if(message.error) pending.reject(new Error(message.error.message||'Tool call failed.'));
+      else pending.resolve(message.result);
       return;
     }
-    if(message.id===1 && message.result){
+    if(message.method==='ui/resource-teardown'){
+      active=false;state.data=null;sizeObserver?.disconnect();quickCheck.removeEventListener('submit',onQuickSearch);
+      pendingRequests.forEach(pending=>{window.clearTimeout(pending.timer);pending.reject(new Error('View closed.'));});
+      pendingRequests.clear();window.removeEventListener('message',onMessage);cards.replaceChildren();quickResult.replaceChildren();
+      domainQuery.value='';setQuickStatus('');
+      if(Object.prototype.hasOwnProperty.call(message,'id')) window.parent.postMessage({jsonrpc:'2.0',id:message.id,result:{}},'*');
+      return;
+    }
+    if(message.id===1&&message.result){
+      applyHostContext(message.result.hostContext||{});
+      state.hostCapabilities=message.result.hostCapabilities||{};
+      quickCheck.hidden=!Boolean(state.hostCapabilities.serverTools);
+      localizeQuickCheck();
       initialized=true;
-      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');
+      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}} ,'*');
       notifySize();
       return;
     }
+    if(message.method==='ui/notifications/host-context-changed'){
+      applyHostContext(message.params||{});localizeQuickCheck();render();return;
+    }
     if(message.method==='ui/notifications/tool-result'){
       const payload=message.params?.structuredContent;
-      state.data=payload?.result||payload||null;
-      render();
+      state.data=payload?.result||payload||null;render();
     }
   }
   window.addEventListener('message',onMessage);
-  window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.1.0'},appCapabilities:{availableDisplayModes:['inline']}}},'*');
+  window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.1.0'},appCapabilities:{availableDisplayModes:['inline','fullscreen']}}},'*');
 })();
 </script>
 </body>
