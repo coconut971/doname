@@ -26,7 +26,7 @@ doname = "doname.cli:main"
 doname-mcp = "doname.mcp_server:main"
 
 [project.urls]
-Repository = "https://github.com/coconut971/isdomainok"
+Repository = "https://github.com/coconut971/doname"
 
 [tool.setuptools.packages.find]
 where = ["."]
