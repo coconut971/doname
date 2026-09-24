@@ -53,8 +53,12 @@
         const row=node('div','','row');
         row.append(node('div',d.domain+' · '+(label[d.status]||d.status),'domain'));
         row.append(node('div',price(d.registration_price),'price'));
-        const evidence=d.registrability||d.registration;
-        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked',d.renewal_price?'Indicative renewal '+price(d.renewal_price):'Renewal unknown'];
+        const rdapStatus=d.status==='registered'||d.status==='not_found_in_registration_data';
+        const evidence=rdapStatus?d.registration:(d.registrability||d.registration);
+        const secondary=rdapStatus?d.registrability:(d.status==='conflict'?d.registration:null);
+        const meta=[evidence?.source||'No live source',evidence?.checked_at||'Not checked'];
+        if(secondary) meta.push(`${secondary.source}: ${secondary.status}`);
+        meta.push(d.renewal_price?'Indicative renewal '+price(d.renewal_price):'Renewal unknown');
         row.append(node('div',meta.join(' · '),'meta'));card.append(row);
       });
       if(item.reasons?.length&&!only.checked) card.append(node('p',item.reasons.join('; '),'reason'));

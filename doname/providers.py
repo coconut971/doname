@@ -13,6 +13,16 @@ from urllib.parse import urlencode
 from .models import Evidence, Price
 from .network import NetworkError, get_json, post_json
 
+# GoDaddy Money.value is in the currency's smallest unit, not always cents.
+# Unknown currencies deliberately produce no displayed price.
+_MINOR_DIGITS = {
+    **dict.fromkeys(("CLP", "ISK", "JPY", "KRW", "VND", "XAF", "XOF", "XPF"), 0),
+    **dict.fromkeys(("AED", "ARS", "AUD", "BGN", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK",
+                     "EUR", "GBP", "HKD", "HUF", "ILS", "INR", "MXN", "MYR", "NOK", "NZD",
+                     "PHP", "PLN", "RON", "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "USD", "ZAR"), 2),
+    **dict.fromkeys(("BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND"), 3),
+}
+
 
 @dataclass
 class ProviderResult:
@@ -32,9 +42,15 @@ def _price(raw: object, *, kind: str, years: int, checked_at: str) -> Price | No
         return None
     minor = raw.get("value")
     currency = raw.get("currencyCode")
-    if type(minor) is not int or minor < 0 or not isinstance(currency, str) or len(currency) != 3 or not currency.isascii() or not currency.isalpha():
+    if type(minor) is not int or minor < 0 or not isinstance(currency, str):
         return None
-    return Price(str((Decimal(minor) / 100).quantize(Decimal("0.01"))), currency.upper(), years, kind, "GoDaddy", checked_at)
+    currency = currency.upper()
+    digits = _MINOR_DIGITS.get(currency)
+    if digits is None:
+        return None
+    scale = Decimal(10) ** digits
+    amount = (Decimal(minor) / scale).quantize(Decimal(1) / scale)
+    return Price(str(amount), currency, years, kind, "GoDaddy", checked_at)
 
 
 class GoDaddyProvider:
@@ -111,6 +127,12 @@ class GoDaddyProvider:
         if "definitive" in data and type(data["definitive"]) is not bool:
             return ProviderResult(Evidence("error", self.name, reason="invalid_availability_payload"))
         available = data["available"]
+        if available and data.get("definitive") is not True:
+            return ProviderResult(Evidence("unconfirmed", self.name,
+                                           reason="provider_availability_not_definitive",
+                                           details={"reported_available": True,
+                                                    "definitive": data.get("definitive"),
+                                                    "optimization": "ACCURACY"}))
         evidence = Evidence("available" if available else "unavailable", self.name,
                             reason=None if available else "provider_did_not_offer_registration",
                             details={"definitive": data.get("definitive"), "optimization": "ACCURACY"})

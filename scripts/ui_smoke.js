@@ -43,9 +43,19 @@ listeners.message({ source: parent, data: { jsonrpc: '2.0', method: 'ui/notifica
 assert.strictEqual(elements.cards.children.length, 1);
 assert.strictEqual(elements.cards.children[0].children[0].textContent, 'sample ');
 assert.strictEqual(elements.cards.children[0].children[1].children[0].textContent, 'sample.com · Available at provider');
+assert(elements.cards.children[0].children[1].children[2].textContent.includes('SyntheticProvider'));
+listeners.message({ source: parent, data: { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: {
+  structuredContent: { summary: '1 unverified', candidates: [], excluded: [{ name: 'sample', match: 'unknown', reasons: [], domains: [{
+    domain: 'sample.com', status: 'not_found_in_registration_data', registration_price: null, renewal_price: null,
+    registration: { source: 'rdap.example.net', checked_at: '2026-01-01T00:00:00Z' },
+    registrability: { source: 'GoDaddy', status: 'unconfirmed', checked_at: '2026-01-01T00:00:01Z' }
+  }] }] }
+} } });
+assert(elements.cards.children[0].children[1].children[2].textContent.includes('rdap.example.net'));
+assert(elements.cards.children[0].children[1].children[2].textContent.includes('GoDaddy: unconfirmed'));
 elements.only.checked = true;
 elements.only.listeners.change();
-assert.strictEqual(elements.cards.children[0].children.length, 2);
+assert.strictEqual(elements.cards.children[0].textContent, 'No names match this filter.');
 const oldHandler = listeners.message;
 oldHandler({ source: parent, data: { jsonrpc: '2.0', id: 'close-42', method: 'ui/resource-teardown', params: { reason: 'host closed view' } } });
 assert.strictEqual(sent.at(-1).jsonrpc, '2.0');

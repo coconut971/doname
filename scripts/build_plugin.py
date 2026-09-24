@@ -6,9 +6,15 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = ["plugin.json", "mcp.json", "uv.lock", "pyproject.toml", "README.md", "LICENSE"]
-FILES += [path.relative_to(ROOT).as_posix() for folder in ("doname", "skills/doname-naming")
-          for path in (ROOT / folder).rglob("*") if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"]
+# Keep this list explicit: a local file under doname/ or skills/ must never
+# enter a public bundle merely because it happens to be next to source code.
+FILES = [
+    "LICENSE", "README.md", "mcp.json", "plugin.json", "pyproject.toml", "uv.lock",
+    "doname/__init__.py", "doname/cli.py", "doname/dns.py", "doname/domains.py",
+    "doname/engine.py", "doname/mcp_server.py", "doname/models.py", "doname/naming.py",
+    "doname/network.py", "doname/providers.py", "doname/rdap.py", "doname/ui/cards.html",
+    "skills/doname-naming/SKILL.md",
+]
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 # DoName — project memory and refoundation brief
 
-Date: 2026-09-24. Status: implementation in progress on `implementation/doname-v1`; no public release.
+Date: 2026-09-24. Status: DoName 0.1.0 release candidate on `implementation/doname-v1`; no public release yet.
 
 Repository inspected: `coconut971/isdomainok`, public. Baseline: `main` at `80fea7d9a8cb13fc1509286d7c254c47041ba4b1` (IsDomainOK 2.1.0). Keep this history. **DoName V1** names the new product milestone; do not silently downgrade an already published package's version.
 
@@ -145,3 +145,11 @@ The separate private GoDaddy probe generates disposable synthetic `.com`/`.fr` c
 An official private Secure MCP Tunnel connected the local stdio server to a ChatGPT developer-mode MCP App. In a real ChatGPT conversation, offline synthetic `screen_names` results rendered DoName cards and the **Available only** filter worked. A keyless live RDAP check returned `registered` for public `.com` and `.fr` controls, and `not_found_in_registration_data` for synthetic RDAP 404 cases with source and check time. A second card View displayed that cautious status and unknown prices. The text/structured fallback remained useful.
 
 A provider-enabled ChatGPT `check_domains` call then returned registered public controls and available synthetic `.com`/`.fr` candidates from GoDaddy, with registration and renewal prices, currency, source time and no reported errors. A real `screen_names` card showed both extensions as provider-available with those indicative prices and renewal details; the candidate passed `match="all"`. This confirms the tested provider-to-ChatGPT path. It does not establish universal TLD coverage, future availability, checkout pricing or public plugin readiness. No private candidates, token or raw provider response entered Git. The private App is not a public plugin or production deployment, and PR #9 remains draft pending final review.
+
+### Release review and publication boundary
+
+2026-09-24 — The user chose GoDaddy as the sole V1 provider and reported that GitHub Actions cannot be the release gate. The local `scripts/release_check.py` checks the lockfile, Python 3.10/3.13 tests, Agent Plugins manifests, MCP Apps lifecycle, extracted plugin startup/tool discovery and Python builds. The plugin builder now has an explicit public-file list; a separate artifact audit rejects unexpected, untracked or secret-shaped files. The current release candidate passes 38 Python tests on each version and the full local gate on Windows. No live provider call is part of that gate.
+
+Review of PR #9 also tightened GoDaddy truth handling: `available=true` is only shown as verified when the response marks it definitive; otherwise prices are withheld and the result remains unconfirmed. Money values use the currency's minor unit rather than assuming two decimals. Cards now label RDAP as the primary source for RDAP statuses and show secondary provider evidence separately. The README and changelog describe tested hosts and release limits. A pattern scan of tracked content and Git diffs found no recognizable PAT, OpenAI key or private-key marker; this cannot prove that every possible secret format is absent.
+
+The public release target is source plus a locally runnable plugin bundle on GitHub, tagged `doname-v0.1.0`. It is not PyPI publication, a production service, or a public ChatGPT directory listing. A public ChatGPT plugin still requires a stable HTTPS MCP service with authentication, abuse controls, privacy review and OpenAI submission. V2 may add providers after this single-provider path is stable.

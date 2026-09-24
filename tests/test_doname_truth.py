@@ -69,7 +69,7 @@ class ProviderTests(unittest.TestCase):
 
     @patch("doname.providers.get_json")
     def test_valid_prices_and_request_boundaries(self, get):
-        get.return_value = {"domain": "sample.com", "available": True, "prices": [{"term": "YEAR", "period": 1,
+        get.return_value = {"domain": "sample.com", "available": True, "definitive": True, "prices": [{"term": "YEAR", "period": 1,
             "price": {"value": 1299, "currencyCode": "EUR"}, "renewalPrice": {"value": 2199, "currencyCode": "EUR"}}]}
         result = self.provider.check("sample.com")
         self.assertEqual(result.evidence.status, "available")
@@ -86,6 +86,32 @@ class ProviderTests(unittest.TestCase):
                         {"domain": "other.com", "available": False}]:
             get.return_value = payload
             self.assertEqual(self.provider.check("sample.com").evidence.status, "error")
+
+    @patch("doname.providers.get_json")
+    def test_non_definitive_offer_does_not_confirm_availability(self, get):
+        for definitive in (False, "missing"):
+            with self.subTest(definitive=definitive):
+                payload = {"domain": "sample.com", "available": True,
+                           "prices": [{"term": "YEAR", "period": 1,
+                                       "price": {"value": 1299, "currencyCode": "USD"}}]}
+                if definitive is False:
+                    payload["definitive"] = False
+                get.return_value = payload
+                result = self.provider.check("sample.com")
+                self.assertEqual(result.evidence.status, "unconfirmed")
+                self.assertIsNone(result.registration_price)
+
+    @patch("doname.providers.get_json")
+    def test_price_uses_currency_minor_units_and_unknown_currency_is_omitted(self, get):
+        for currency, raw_value, expected in (("JPY", 1200, "1200"), ("KWD", 12345, "12.345"),
+                                              ("ZZZ", 1299, None)):
+            with self.subTest(currency=currency):
+                get.return_value = {"domain": "sample.com", "available": True, "definitive": True,
+                                    "prices": [{"term": "YEAR", "period": 1,
+                                                "price": {"value": raw_value, "currencyCode": currency}}]}
+                result = self.provider.check("sample.com")
+                self.assertEqual(result.evidence.status, "available")
+                self.assertEqual(result.registration_price.amount if result.registration_price else None, expected)
 
     @patch("doname.providers.get_json", side_effect=NetworkError("http_429", 12))
     def test_quota_retains_retry_after(self, *_):
@@ -110,7 +136,7 @@ class ProviderTests(unittest.TestCase):
     @patch("doname.providers.post_json")
     def test_batch_maps_by_domain_and_keeps_item_errors(self, post):
         post.return_value = {"items": [
-            {"domain": "sample.com", "available": True, "prices": [{"term": "YEAR", "period": 1,
+            {"domain": "sample.com", "available": True, "definitive": True, "prices": [{"term": "YEAR", "period": 1,
                 "price": {"value": 1000, "currencyCode": "USD"}}]},
             {"domain": "sample.fr", "error": {"name": "UNSUPPORTED_TLD"}},
         ]}
