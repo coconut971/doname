@@ -1,0 +1,2 @@
+# Hash-pinned upstream schemas must retain their canonical bytes on Windows.
+schemas/agent-plugins-1.0.0/*.json text eol=lf

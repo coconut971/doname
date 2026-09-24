@@ -18,6 +18,9 @@ dependencies = [
   "mcp>=2,<3",
 ]
 
+[dependency-groups]
+dev = ["jsonschema>=4.25,<5"]
+
 [project.scripts]
 doname = "doname.cli:main"
 doname-mcp = "doname.mcp_server:main"

@@ -99,10 +99,14 @@ Requests, response bodies, batch size, concurrency and total duration are bounde
 ```bash
 uv sync --locked
 uv run --locked python -m unittest discover -s tests -v
+uv run --locked python scripts/validate_manifests.py
 uv run --locked python scripts/benchmark.py
 node scripts/ui_smoke.js
 uv build
 uv run --locked python scripts/build_plugin.py
+uv run --locked python scripts/smoke_bundle.py
 ```
+
+The manifest validator uses local copies of the versioned Agent Plugins schemas and checks their pinned hashes; it sends no search data. Public CI runs the tests and packaging smoke on Linux and Windows, but never calls a live registrar. A credentialed run uses the separate [private GoDaddy probe](docs/doname/LIVE_PROVIDER_TEST.md). The prepared [ChatGPT developer-mode test](docs/doname/CHATGPT_DEV_TEST.md) uses a private tunnel and has not yet been performed.
 
 See [project memory](docs/doname/PROJECT.md) for decisions, measured validation and remaining work. The original [implementation brief](docs/doname/CODEX_PROMPT.md) is preserved as a historical reference.

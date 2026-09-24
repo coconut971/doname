@@ -101,6 +101,12 @@ class ProviderTests(unittest.TestCase):
     def test_timeout_is_not_unavailable(self, *_):
         self.assertEqual(self.provider.check("sample.com").evidence.status, "timeout")
 
+    @patch("doname.providers.post_json", side_effect=NetworkError("http_401"))
+    def test_batch_auth_error_is_not_unavailable(self, *_):
+        result = self.provider.check_many(["sample.com", "sample.fr"])
+        self.assertEqual({item.evidence.status for item in result.values()}, {"error"})
+        self.assertEqual({item.evidence.reason for item in result.values()}, {"http_401"})
+
     @patch("doname.providers.post_json")
     def test_batch_maps_by_domain_and_keeps_item_errors(self, post):
         post.return_value = {"items": [

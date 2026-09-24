@@ -20,12 +20,26 @@
 <script>
 (() => {
   const state = {data:null};
+  let active = true;
+  let initialized = false;
+  let lastSize = '';
   const summary = document.getElementById('summary');
   const cards = document.getElementById('cards');
   const only = document.getElementById('only');
   const label = {available_at_provider:'Available at provider',unavailable_at_provider:'Unavailable here',registered:'Registered',not_found_in_registration_data:'Not found in RDAP',not_verified:'Not verified',conflict:'Conflicting evidence'};
   const node = (tag, text, className) => { const el=document.createElement(tag); el.textContent=text; if(className) el.className=className; return el; };
   const price = p => p ? `${p.amount} ${p.currency} / ${p.period_years} yr${p.period_years===1?'':'s'}` : 'Price unknown';
+  function notifySize(){
+    if(!active||!initialized) return;
+    const bounds=document.body?.getBoundingClientRect?.();
+    if(!bounds) return;
+    const width=Math.ceil(bounds.width),height=Math.ceil(bounds.height);
+    const key=`${width}x${height}`;
+    if(width>0&&height>0&&key!==lastSize){
+      lastSize=key;
+      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{width,height}},'*');
+    }
+  }
   function render(){
     cards.replaceChildren();
     if(!state.data) return;
@@ -46,18 +60,41 @@
       if(item.reasons?.length&&!only.checked) card.append(node('p',item.reasons.join('; '),'reason'));
       cards.append(card);
     });
+    notifySize();
   }
-  only.addEventListener('change',render);
-  window.addEventListener('message',event=>{
+  const onFilterChange=()=>{if(active) render();};
+  only.addEventListener('change',onFilterChange);
+  const sizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(notifySize):null;
+  if(sizeObserver) sizeObserver.observe(document.body);
+  function onMessage(event){
+    if(!active) return;
     if(event.source!==window.parent||!event.data||event.data.jsonrpc!=='2.0') return;
     const message=event.data;
-    if(message.id===1 && message.result){window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');return;}
+    if(message.method==='ui/resource-teardown'){
+      active=false;
+      state.data=null;
+      sizeObserver?.disconnect();
+      only.removeEventListener('change',onFilterChange);
+      window.removeEventListener('message',onMessage);
+      cards.replaceChildren();
+      summary.textContent='';
+      if(Object.prototype.hasOwnProperty.call(message,'id'))
+        window.parent.postMessage({jsonrpc:'2.0',id:message.id,result:{}},'*');
+      return;
+    }
+    if(message.id===1 && message.result){
+      initialized=true;
+      window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');
+      notifySize();
+      return;
+    }
     if(message.method==='ui/notifications/tool-result'){
       const payload=message.params?.structuredContent;
       state.data=payload?.result||payload||null;
       render();
     }
-  });
+  }
+  window.addEventListener('message',onMessage);
   window.parent.postMessage({jsonrpc:'2.0',id:1,method:'ui/initialize',params:{protocolVersion:'2026-01-26',appInfo:{name:'DoName cards',version:'0.1.0'},appCapabilities:{availableDisplayModes:['inline']}}},'*');
 })();
 </script>
